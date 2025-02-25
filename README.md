@@ -1,2 +1,19 @@
-# course_connect_backend
-CourseConnect Backend is the server-side API that powers the CourseConnect LMS. Built with Express.js and Prisma, it handles user authentication, course management, student enrollment, and progress tracking. The backend integrates with a PostgreSQL database and provides a RESTful API for communication with the frontend and mobile apps.
+# CourseConnect Backend
+
+CourseConnect Backend is the API server for managing users, courses, enrollments, and more. Built with Express.js, this backend handles authentication, course creation, student progress, and payment integrations. It provides a RESTful API that the frontend and mobile apps can interact with.
+
+## Features:
+- User authentication and management via JWT (Login/Signup).
+- Instructor features to create, manage, and track courses.
+- Student features to browse, enroll, and track courses.
+- Payment integration (Stripe/PayPal) for paid courses.
+- RESTful API endpoints for communication with frontend and mobile apps.
+- Option to issue course completion certificates.
+
+## Technologies Used:
+- Express.js
+- Prisma ORM (for database management)
+- PostgreSQL
+- JWT for authentication and authorization
+- Stripe/PayPal for payment processing
+- Node.js
