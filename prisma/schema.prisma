@@ -1,0 +1,279 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  first_name     String
+  last_name      String
+  email          String           @unique
+  password       String
+  role           Role
+  title          String?
+  profilePic     String?
+  bio            String?  @db.Text
+  rating         Float?           @default(0)
+  students       Int?             @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  certificates   Certificate[]
+  courses        Course[]         @relation("InstructorCourses")
+  Enrollment     Enrollment[]
+  payments       Payment[]
+  reviews        Review[]        
+  UserQuizAnswer UserQuizAnswer[]
+
+  @@map("users")
+}
+
+model Course {
+  id               Int                     @id @default(autoincrement())
+  title            String
+  shortDescription String                  @db.VarChar(255)
+  description      String                  @db.Text
+  category         CourseCategory
+  difficulty       DifficultyLevel
+  rating           Float?                  @default(0)
+  duration         Int
+  totalHours       Int
+  pricing          Float?
+  originalPrice    Float?
+  imageUrl         String?
+  videoUrl         String? @db.VarChar(1024)
+  isActive         Boolean                 @default(true)
+  instructorId     Int
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  certificates     Certificate[]
+  instructor       User                    @relation("InstructorCourses", fields: [instructorId], references: [id])
+  learningOutcomes CourseLearningOutcome[] 
+  requirements     CourseRequirement[]     
+  enrollments      Enrollment[]            
+  modules          Module[]                
+  payments         Payment[]               
+  reviews          Review[]                
+
+
+  @@index([instructorId])
+  @@index([category])
+  @@index([difficulty])
+}
+
+model Module {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  order       Int
+  duration    Int
+  courseId    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  lessons     Lesson[] 
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, order])
+}
+
+model Lesson {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  content     String   @db.Text
+  duration    Int
+  order       Int
+  videoUrl    String? @db.VarChar(1024)
+  hasQuiz     Boolean  @default(false)
+  moduleId    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  quiz        Quiz?
+
+  @@unique([moduleId, order])
+}
+
+model CourseLearningOutcome {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.Text
+  courseId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId], map: "CourseLearningOutcome_courseId_fkey")
+}
+
+model CourseRequirement {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.Text
+  courseId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId], map: "CourseRequirement_courseId_fkey")
+}
+
+model Enrollment {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  courseId     Int
+  progress     Float    @default(0)
+  status       enrollmentStaus @default(NOT_STARTED)  
+  lastLessonId Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  users        User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([userId])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String   @db.Text
+  userId    Int
+  courseId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([courseId])
+}
+
+model Quiz {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?
+  duration    Int?
+  lessonId    Int            @unique
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  courseId    Int?
+  lesson      Lesson         @relation(fields: [lessonId], references: [id])
+  questions   QuizQuestion[]
+
+  @@index([lessonId])
+  @@index([courseId], map: "Quiz_courseId_fkey")
+}
+
+model QuizQuestion {
+  id              Int              @id @default(autoincrement())
+  question        String
+  quizId          Int
+  correctAnswerId Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  answers         QuizAnswer[]
+  quiz            Quiz             @relation(fields: [quizId], references: [id])
+  UserQuizAnswer  UserQuizAnswer[]
+
+  @@index([quizId])
+}
+
+model QuizAnswer {
+  id             Int              @id @default(autoincrement())
+  answerText     String
+  isCorrect      Boolean
+  quizQuestionId Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  quizQuestion   QuizQuestion     @relation(fields: [quizQuestionId], references: [id])
+  UserQuizAnswer UserQuizAnswer[]
+
+  @@index([quizQuestionId], map: "QuizAnswer_quizQuestionId_fkey")
+}
+
+model UserQuizAnswer {
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  quizQuestionId Int
+  quizAnswerId   Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  quizAnswer     QuizAnswer   @relation(fields: [quizAnswerId], references: [id])
+  quizQuestion   QuizQuestion @relation(fields: [quizQuestionId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, quizQuestionId])
+  @@index([quizAnswerId], map: "UserQuizAnswer_quizAnswerId_fkey")
+  @@index([quizQuestionId], map: "UserQuizAnswer_quizQuestionId_fkey")
+}
+
+model Certificate {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  courseId  Int
+  awardedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([courseId], map: "Certificate_courseId_fkey")
+  @@index([userId], map: "Certificate_userId_fkey")
+}
+
+model Payment {
+  id             Int              @id @default(autoincrement())
+  userId         Int
+  courseId       Int
+  transaction_id String           @unique
+  amount         Float
+  status         String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  course         Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id])
+  paymentHistory PaymentHistory[]
+
+  @@index([courseId], map: "Payment_courseId_fkey")
+  @@index([userId], map: "Payment_userId_fkey")
+}
+
+model PaymentHistory {
+  id        Int      @id @default(autoincrement())
+  paymentId Int
+  status    String
+  amount    Float
+  createdAt DateTime @default(now())
+  payment   Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId], map: "PaymentHistory_paymentId_fkey")
+}
+
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+enum CourseCategory {
+  WEB
+  MOBILE
+  DATA_SCIENCE
+  DESIGN
+  BUSINESS
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum enrollmentStaus {
+  COMPLETED
+  IN_PROGRESS
+  NOT_STARTED
+}
