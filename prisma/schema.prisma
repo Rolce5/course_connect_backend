@@ -1,0 +1,347 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  first_name     String
+  last_name      String
+  email          String           @unique
+  password       String
+  role           Role
+  title          String?
+  profilePic     String?
+  bio            String?          @db.Text
+  rating         Float?           @default(0)
+  students       Int?             @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  certificates   Certificate[]
+  courses        Course[]         @relation("InstructorCourses")
+  enrollments    Enrollment[]
+  payments       Payment[]
+  reviews        Review[]
+  quizAttempts   QuizAttempt[]
+  notes          Note[]
+
+  @@map("users")
+}
+
+model Course {
+  id                Int                     @id @default(autoincrement())
+  title             String
+  short_description String                  @db.VarChar(255)
+  description       String                  @db.Text
+  category          CourseCategory
+  difficulty        DifficultyLevel
+  rating            Float?                  @default(0)
+  duration          Int
+  total_hours       Int
+  pricing           Float?
+  original_price    Float?
+  imageUrl          String?
+  videoUrl          String?                 @db.VarChar(1024)
+  is_active         Boolean                 @default(true)
+  instructor_id     Int
+  created_at        DateTime                @default(now())
+  updated_at        DateTime                @updatedAt
+
+  // relations
+  certificates      Certificate[]
+  instructor        User                    @relation("InstructorCourses", fields: [instructor_id], references: [id])
+  learningOutcomes CourseLearningOutcome[] 
+  requirements     CourseRequirement[]     
+  enrollments      Enrollment[]            
+  modules          Module[]                
+  payments         Payment[]               
+  reviews          Review[]                
+
+  @@index([instructor_id])
+  @@index([category])
+  @@index([difficulty])
+  @@map("courses")
+
+}
+
+model Module {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  order       Int
+  duration    Int
+  course_id    Int
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // relations
+  lessons     Lesson[] 
+  course      Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@unique([course_id, order])
+  @@map("modules")
+}
+
+model Lesson {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?  @db.Text
+  content     String   @db.Text
+  duration    Int
+  order       Int
+  videoUrl    String?  @db.VarChar(1024)
+  has_quiz    Boolean  @default(false)
+  module_id   Int
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // relations
+  module      Module   @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  quiz        Quiz?
+  notes       Note[]
+
+  @@unique([module_id, order])
+  @@map("lessons")
+}
+
+model Quiz {
+  id           Int            @id @default(autoincrement())
+  title        String
+  description  String?
+  lesson_id    Int            @unique
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+  lesson       Lesson         @relation(fields: [lesson_id], references: [id])
+
+  // relations
+  questions    QuizQuestion[] 
+  attempts     QuizAttempt[]
+
+  @@index([lesson_id])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id               Int               @id @default(autoincrement())
+  question_text    String
+  hint             String?           // Hint for the question
+  explanation      String?           // Explanation of the correct answer
+  quiz_id          Int
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+
+  // relations
+  options         QuizQuestionOption[] @relation(onDelete: Cascade)
+  quiz            Quiz              @relation(fields: [quiz_id], references: [id])
+  answers QuizAnswer[]   @relation(onDelete: Cascade)
+
+  @@index([quiz_id])
+  @@map("quiz_questions")
+}
+
+model QuizQuestionOption {
+  id                Int            @id @default(autoincrement())
+  option_text        String
+  is_correct         Boolean
+  quiz_question_id  Int
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+
+  // relations
+  quizQuestion    QuizQuestion   @relation(fields: [quiz_question_id], references: [id])
+  answers         QuizAnswer[]
+
+  @@index([quiz_question_id])
+  @@map("quiz_question_options")
+}
+
+model QuizAttempt {
+  id              Int            @id @default(autoincrement())
+  user_id         Int
+  quiz_id         Int
+  score           Float
+  completed_at    DateTime       @default(now())
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
+
+  // relations
+  user           User           @relation(fields: [user_id], references: [id])
+  quiz           Quiz           @relation(fields: [quiz_id], references: [id])
+  answers        QuizAnswer[]
+
+  @@index([user_id, quiz_id])
+  @@index([completed_at])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id                  Int               @id @default(autoincrement())
+  attempt_id          Int
+  question_id         Int
+  selected_option_id  Int
+  is_correct          Boolean
+  created_at          DateTime          @default(now())
+  updated_at          DateTime          @updatedAt
+
+  // relations
+  attempt           QuizAttempt       @relation(fields: [attempt_id], references: [id])
+  question          QuizQuestion      @relation(fields: [question_id], references: [id])
+  selectedOption    QuizQuestionOption @relation(fields: [selected_option_id], references: [id])
+
+  // @@index([attemptId])
+  // @@index([questionId])
+    @@index([attempt_id, question_id])
+
+  @@index([selected_option_id])
+    @@map("quiz_answers")
+}
+
+model Note {
+  id           Int      @id @default(autoincrement())
+  content      String   @db.Text
+  user_id      Int
+  lesson_id    Int
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  user         User     @relation(fields: [user_id], references: [id])
+  lesson       Lesson   @relation(fields: [lesson_id], references: [id])
+
+  @@index([user_id])
+  @@index([lesson_id])
+  @@map("notes")
+}
+
+model CourseLearningOutcome {
+  id         Int      @id @default(autoincrement())
+  text       String   @db.Text
+  course_id  Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  course     Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@index([course_id])
+  @@map("course_learning_outcomes")
+}
+
+model CourseRequirement {
+  id         Int      @id @default(autoincrement())
+  text       String   @db.Text
+  course_id  Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  course     Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@index([course_id])
+  @@map("course_requirements")
+}
+
+model Enrollment {
+  id             Int             @id @default(autoincrement())
+  user_id        Int
+  course_id      Int
+  progress       Float           @default(0)
+  status         EnrollmentStatus @default(NOT_STARTED)
+  last_lesson_id Int?
+  created_at     DateTime        @default(now())
+  updated_at     DateTime        @updatedAt
+  course         Course          @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, course_id])
+  @@index([course_id])
+  @@index([user_id])
+  @@map("enrollments")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  rating     Int
+  comment    String   @db.Text
+  user_id    Int
+  course_id  Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  course     Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([course_id])
+  @@map("reviews")
+}
+
+model Certificate {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  course_id  Int
+  awarded_at DateTime @default(now())
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  course     Course   @relation(fields: [course_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@index([course_id])
+  @@index([user_id])
+  @@map("certificates")
+}
+
+model Payment {
+  id               Int              @id @default(autoincrement())
+  user_id          Int
+  course_id        Int
+  transaction_id   String           @unique
+  amount           Float
+  status           String
+  payment_method   String?   
+  created_at       DateTime         @default(now())
+  updated_at       DateTime         @updatedAt
+  course           Course           @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [user_id], references: [id])
+  paymentHistory   PaymentHistory[]
+
+  @@index([course_id])
+  @@index([user_id])
+  @@map("payments")
+}
+
+model PaymentHistory {
+  id         Int      @id @default(autoincrement())
+  payment_id Int
+  status     String
+  amount     Float
+  created_at DateTime @default(now())
+  payment    Payment  @relation(fields: [payment_id], references: [id])
+
+  @@index([payment_id])
+  @@map("payment_histories")
+}
+
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+enum CourseCategory {
+  WEB
+  MOBILE
+  DATA_SCIENCE
+  DESIGN
+  BUSINESS
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum EnrollmentStatus {
+  COMPLETED
+  PAUSED
+  IN_PROGRESS
+  NOT_STARTED
+}
