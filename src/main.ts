@@ -11,24 +11,36 @@ async function bootstrap() {
   // =============================================
   // 1. Dynamic CORS Configuration
   // =============================================
-  const isProduction = process.env.NODE_ENV === 'production';
-  const localFrontendUrl = 'http://localhost:3000';
-  const productionFrontendUrl =
-    process.env.FRONTEND_URL || 'https://course-connect-henna.vercel.app';
+ // =============================================
+// 1. Enhanced CORS Configuration
+// =============================================
+const isProduction = process.env.NODE_ENV === 'production';
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://course-connect-henna.vercel.app',
+  // Add other environments/staging URLs if needed
+];
 
-  app.enableCors({
-    origin: isProduction ? productionFrontendUrl : localFrontendUrl,
-    credentials: true, // Required for cookies/auth
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-    ],
-    exposedHeaders: ['Authorization'], // For JWT tokens
-    maxAge: 86400, // 24h cache for preflight requests
-  });
+// Allow Render's own domain for health checks if needed
+if (process.env.RENDER_EXTERNAL_HOSTNAME) {
+  allowedOrigins.push(`https://${process.env.RENDER_EXTERNAL_HOSTNAME}`);
+}
+
+app.enableCors({
+  origin: isProduction 
+    ? allowedOrigins.filter(origin => origin !== 'http://localhost:3000') 
+    : allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+  ],
+  exposedHeaders: ['Authorization'],
+  maxAge: 86400,
+});
 
   // =============================================
   // 2. Global Pipes
