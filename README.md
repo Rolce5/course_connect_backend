@@ -11,9 +11,10 @@ CourseConnect Backend is the API server for managing users, courses, enrollments
 - Option to issue course completion certificates.
 
 ## Technologies Used:
-- Express.js
+- Nest.js
 - Prisma ORM (for database management)
-- PostgreSQL
+- MySQL
 - JWT for authentication and authorization
-- Stripe/PayPal for payment processing
+- Fapshi for payment processing
+//- Stripe/PayPal for payment processing
 - Node.js

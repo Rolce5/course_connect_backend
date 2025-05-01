@@ -135,9 +135,9 @@ model QuizQuestion {
   updated_at       DateTime          @updatedAt
 
   // relations
-  options         QuizQuestionOption[] @relation(onDelete: Cascade)
+  options         QuizQuestionOption[] 
   quiz            Quiz              @relation(fields: [quiz_id], references: [id])
-  answers QuizAnswer[]   @relation(onDelete: Cascade)
+  answers QuizAnswer[]  
 
   @@index([quiz_id])
   @@map("quiz_questions")
@@ -152,7 +152,7 @@ model QuizQuestionOption {
   updated_at        DateTime       @updatedAt
 
   // relations
-  quizQuestion    QuizQuestion   @relation(fields: [quiz_question_id], references: [id])
+  quizQuestion    QuizQuestion   @relation(fields: [quiz_question_id], references: [id], onDelete: Cascade)
   answers         QuizAnswer[]
 
   @@index([quiz_question_id])
@@ -189,7 +189,7 @@ model QuizAnswer {
 
   // relations
   attempt           QuizAttempt       @relation(fields: [attempt_id], references: [id])
-  question          QuizQuestion      @relation(fields: [question_id], references: [id])
+  question          QuizQuestion      @relation(fields: [question_id], references: [id], onDelete: Cascade)
   selectedOption    QuizQuestionOption @relation(fields: [selected_option_id], references: [id])
 
   // @@index([attemptId])
