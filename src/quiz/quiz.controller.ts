@@ -64,8 +64,4 @@ export class QuizController {
     return this.quizService.getNewQuizVersion(quizId);
   }
 
-  @Get(':id/weak-topics')
-  getWeakTopics(@Req() req, @Param('id', ParseIntPipe) quizId: number) {
-    return this.quizService.calculateWeakTopics(req.user.id, quizId);
-  }
 }

@@ -283,47 +283,5 @@ export class QuizService {
     };
   }
 
-  async calculateWeakTopics(userId: number, quizId: number) {
-    const attempts = await this.prisma.quizAttempt.findMany({
-      where: {
-        user_id: userId, // Changed from userId
-        quiz_id: quizId, // Changed from quizId
-      },
-      include: {
-        answers: {
-          include: {
-            question: true,
-          },
-        },
-      },
-    });
-
-    if (attempts.length === 0) return [];
-
-    const topicStats: Record<string, { incorrect: number; total: number }> = {};
-
-    // Initialize topic stats
-    for (const attempt of attempts) {
-      for (const answer of attempt.answers) {
-        if (answer.question.topic) {
-          topicStats[answer.question.topic] = topicStats[
-            answer.question.topic
-          ] || {
-            incorrect: 0,
-            total: 0,
-          };
-          topicStats[answer.question.topic].total++;
-          if (!answer.is_correct) {
-            // Changed from isCorrect
-            topicStats[answer.question.topic].incorrect++;
-          }
-        }
-      }
-    }
-
-    // Identify weak topics (more than 50% incorrect)
-    return Object.entries(topicStats)
-      .filter(([_, stats]) => stats.incorrect / stats.total > 0.5)
-      .map(([topic]) => topic);
-  }
+ 
 }

@@ -10,12 +10,14 @@ async function bootstrap() {
   // Specify the app type as NestExpressApplication
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // Enable global validation pipes
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-    }),
-  );
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true, // Remove non-whitelisted properties
+        transform: true, // Auto-transform payloads to DTO instances
+        forbidNonWhitelisted: true, // Throw errors for non-whitelisted properties
+      }),
+    );
+
 
   // Serve static files from the 'uploads' directory
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
@@ -23,7 +25,23 @@ async function bootstrap() {
   });
 
   // Enable CORS
-  app.enableCors();
+app.enableCors({
+  origin: 'http://localhost:3000', // Your frontend URL
+  credentials: true, // Required for withCredentials
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+  ],
+  exposedHeaders: ['Authorization'], // Needed for JWT tokens
+});
+
+    app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+      prefix: '/uploads/',
+      maxAge: '7d', // Cache static files for 7 days
+    });
 
     // Increase body parser limit
     app.use(bodyParser.json({ limit: '10mb' })); // Adjust the limit as necessary
