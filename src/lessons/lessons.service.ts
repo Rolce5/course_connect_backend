@@ -50,7 +50,7 @@ export class LessonsService {
       // Check for existing lesson with same order
       const existingLesson = await this.prisma.lesson.findFirst({
         where: {
-          moduleId: dto.moduleId,
+          module_id: dto.moduleId,
           order: dto.order
         }
       });
@@ -59,7 +59,7 @@ export class LessonsService {
         // Increment orders of subsequent lessons
         await this.prisma.lesson.updateMany({
           where: {
-            moduleId: dto.moduleId,
+            module_id: dto.moduleId,
             order: { gte: dto.order }
           },
           data: {
@@ -77,7 +77,12 @@ export class LessonsService {
       return await this.prisma.lesson.create({
         data: {
           videoUrl,
-          ...dto,
+          module_id: dto.moduleId,
+          title: dto.title,
+          content: dto.content,
+          description: dto.description,
+          duration: dto.duration,
+          order: dto.order,
         },
       });
     } catch (error) {
@@ -92,7 +97,7 @@ export class LessonsService {
 
   async getLessonsByModuleeId(moduleId: number) {
     return this.prisma.lesson.findMany({
-      where: { moduleId },
+      where: { module_id: moduleId },
       orderBy: { order: 'asc' }, // Ensure lessons are returned in order
     });
   }
@@ -120,7 +125,7 @@ export class LessonsService {
 
       // Fetch all lessons in the same module
       const lessons = await this.prisma.lesson.findMany({
-        where: { moduleId: lesson.moduleId },
+        where: { module_id: lesson.module_id },
         orderBy: { order: 'asc' },
       });
 
@@ -202,7 +207,7 @@ export class LessonsService {
     // Decrement the order of all lessons with an order greater than the deleted lesson's order
     await this.prisma.lesson.updateMany({
       where: {
-        moduleId: lesson.moduleId,
+        module_id: lesson.module_id,
         order: { gt: lesson.order },
       },
       data: { order: { decrement: 1 } },
@@ -215,7 +220,7 @@ export class LessonsService {
     try {
       // Get only the highest order lesson (most efficient approach)
       const highestOrderLesson = await this.prisma.lesson.findFirst({
-        where: { moduleId },
+        where: { module_id: moduleId },
         select: { order: true }, // Only fetch the order field
         orderBy: { order: 'desc' },
       });
@@ -265,7 +270,7 @@ export class LessonsService {
   // Helper function to get the maximum order for a course
   private async getMaxOrder(moduleId: number): Promise<number> {
     const lastLesson = await this.prisma.lesson.findFirst({
-      where: { moduleId },
+      where: { module_id: moduleId },
       orderBy: { order: 'desc' },
     });
 

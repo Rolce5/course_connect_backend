@@ -24,18 +24,18 @@ export class CourseService {
       // Return all courses with instructor information
       return this.prisma.course.findMany({
         include: {
-          instructor: true, 
-          enrollments: true
+          instructor: true,
+          enrollments: true,
         },
       });
     } else if (role === 'INSTRUCTOR') {
       // Return only courses associated with the instructor
       return this.prisma.course.findMany({
         where: {
-          instructorId,
+          instructor_id: instructorId,
         },
         include: {
-          instructor: true, 
+          instructor: true,
         },
       });
     } else {
@@ -71,10 +71,19 @@ export class CourseService {
       // Create the course with the provided data
       const course = await this.prisma.course.create({
         data: {
-          instructorId,
-          imageUrl, // Will be undefined if no image was uploaded
-          videoUrl, // Will be undefined if no video was uploaded
-          ...dto,
+          instructor_id: instructorId,
+          imageUrl,
+          videoUrl,
+          short_description: dto.shortDescription,
+          total_hours: dto.totalHours,
+          is_active: dto.isActive,
+          title: dto.title,
+          description: dto.description,
+          category: dto.category,
+          difficulty: dto.difficulty,
+          pricing: dto.pricing === undefined ? null : dto.pricing,
+          original_price: dto.originalPrice === undefined ? null : dto.originalPrice,
+          duration: dto.duration
         },
       });
 
@@ -101,7 +110,8 @@ export class CourseService {
         requirements: true,
         enrollments: true,
         reviews: true,
-      },    });
+      },
+    });
 
     // If course is not found, throw an exception
     if (!course) {
@@ -112,23 +122,94 @@ export class CourseService {
     return course;
   }
 
+  // async getCourseWithLessons(userId: number, courseId: number, role: string) {
+
+  //  // Check if the user is a student and only then check for enrollment
+  // let isEnrolled = false;
+
+  // if (role === 'STUDENT') {
+  //   // Check if the student is enrolled in the course
+  //   isEnrolled = await this.prisma.enrollment.findUnique({
+  //     where: {
+  //       userId_courseId: {
+  //         userId,
+  //         courseId,
+  //       },
+  //     },
+  //   }) !== null;
+  // }
+
+  //   const course = await this.prisma.course.findUnique({
+  //     where: {
+  //       id: courseId,
+  //     },
+  //     include: {
+  //       instructor: true,
+  //       modules: {
+  //         include: {
+  //           lessons: {
+  //             select: {
+  //               id: true,
+  //               title: true,
+  //               description: true,
+  //               duration: true,
+  //               order: true,
+  //               // Only include videoUrl if the user is enrolled or is an instructor
+  //             videoUrl: (role === 'STUDENT' && !isEnrolled) ? false : true,
+
+  //             }
+  //           },
+  //       },
+  //     },
+  //       learningOutcomes: true,
+  //       requirements: true,
+  //       enrollments: true,
+  //       reviews: true,
+  //     },
+  //   });
+
+  //   // Calculate the number of courses the instructor is associated with
+  //   const instructorCourses = await this.prisma.course.count({
+  //     where: {
+  //       instructorId: course?.instructorId, // Get the courses of the current course's instructor
+  //     },
+  //   });
+
+  //   const instructorStudents = await this.prisma.enrollment.count({
+  //     where: {
+  //       userId: course?.instructorId, // Get the courses of the current course's instructor
+  //     },
+  //   });
+
+  //   // Calculate the number of students enrolled in this course
+  //   const numberOfStudents = course?.enrollments.length ?? 0;
+
+  //   return {
+  //     ...course,
+  //     instructorCourses, // Number of courses the instructor has
+  //     numberOfStudents, // Number of students enrolled in this course
+  //     isEnrolled: !!isEnrolled // Add enrollment status to response
+  //   };
+  // }
   async getCourseWithLessons(userId: number, courseId: number, role: string) {
+    // Check enrollment status for students
+    let isEnrolled = false;
+    let enrollment: { status?: string } | null = null;
 
-   // Check if the user is a student and only then check for enrollment
-  let isEnrolled = false;
-
-  if (role === 'STUDENT') {
-    // Check if the student is enrolled in the course
-    isEnrolled = await this.prisma.enrollment.findUnique({
-      where: {
-        userId_courseId: {
-          userId,
-          courseId,
+    if (role === 'STUDENT') {
+      enrollment = await this.prisma.enrollment.findUnique({
+        where: {
+          user_id_course_id: {
+            user_id: userId, 
+            course_id: courseId
+          },
         },
-      },
-    }) !== null;
-  }
+      });
+      isEnrolled = enrollment !== null;
+    }
 
+    const shouldIncludeQuiz =
+      role === 'INSTRUCTOR' || role === 'ADMIN' || isEnrolled;
 
     const course = await this.prisma.course.findUnique({
       where: {
@@ -142,16 +223,40 @@ export class CourseService {
               select: {
                 id: true,
                 title: true,
+                content: true,
                 description: true,
                 duration: true,
                 order: true,
-                // Only include videoUrl if the user is enrolled or is an instructor
-              videoUrl: (role === 'STUDENT' && !isEnrolled) ? false : true,
-
-              }
+                videoUrl: role === 'STUDENT' && !isEnrolled ? false : true,
+                quiz: shouldIncludeQuiz
+                  ? {
+                      include: {
+                        questions: {
+                          include: {
+                            options: {
+                              select: {
+                                id: true,
+                                option_text: true,
+                                // Only expose correct answers to instructors/admins
+                                is_correct:
+                                  role === 'INSTRUCTOR' || role === 'ADMIN',
+                              },
+                            },
+                          },
+                        },
+                      },
+                    }
+                  : false,
+              },
+              orderBy: {
+                order: 'asc',
+              },
             },
+          },
+          orderBy: {
+            order: 'asc',
+          },
         },
-      },
         learningOutcomes: true,
         requirements: true,
         enrollments: true,
@@ -159,27 +264,31 @@ export class CourseService {
       },
     });
 
-    // Calculate the number of courses the instructor is associated with
-    const instructorCourses = await this.prisma.course.count({
-      where: {
-        instructorId: course?.instructorId, // Get the courses of the current course's instructor
-      },
-    });
+    // Calculate instructor metrics
+    const [instructorCourses, instructorStudents] = await Promise.all([
+      this.prisma.course.count({
+        where: {
+          instructor_id: course?.instructor_id,
+        },
+      }),
+      this.prisma.enrollment.count({
+        where: {
+          course: {
+            instructor_id: course?.instructor_id,
+          },
+        },
+      }),
+    ]);
 
-    const instructorStudents = await this.prisma.enrollment.count({
-      where: {
-        userId: course?.instructorId, // Get the courses of the current course's instructor
-      },
-    });
-
-    // Calculate the number of students enrolled in this course
     const numberOfStudents = course?.enrollments.length ?? 0;
 
     return {
       ...course,
-      instructorCourses, // Number of courses the instructor has
-      numberOfStudents, // Number of students enrolled in this course
-      isEnrolled: !!isEnrolled // Add enrollment status to response
+      instructorCourses,
+      instructorStudents,
+      numberOfStudents,
+      isEnrolled,
+      enrollmentStatus: enrollment?.status || null,
     };
   }
 
@@ -199,7 +308,7 @@ export class CourseService {
     });
 
     // Check if the user is the owner of the course
-    if (!course || course.instructorId !== instructorId)
+    if (!course || course.instructor_id !== instructorId)
       throw new ForbiddenException('Access to resource denied');
 
     let imageUrl = course.imageUrl;
@@ -241,9 +350,19 @@ export class CourseService {
         id: courseId,
       },
       data: {
-        ...dto, // Include updated course details
-        imageUrl, // Save the updated image URL
+        instructor_id: instructorId,
+        imageUrl,
         videoUrl,
+        short_description: dto.shortDescription,
+        total_hours: dto.totalHours,
+        is_active: dto.isActive,
+        title: dto.title,
+        description: dto.description,
+        category: dto.category,
+        difficulty: dto.difficulty,
+        pricing: dto.pricing === undefined ? null : dto.pricing,
+        original_price: dto.originalPrice === undefined ? null : dto.originalPrice,
+        duration: dto.duration
       },
     });
   }
@@ -268,7 +387,7 @@ export class CourseService {
     }
 
     // Check if the user is the owner of the course
-    if (course.instructorId !== instructorId)
+    if (course.instructor_id !== instructorId)
       throw new ForbiddenException('Access to resource denied');
 
     // Delete the course image from Cloudinary if it exists
@@ -307,31 +426,50 @@ export class CourseService {
         }
       }
     }
+    try {
+      // Wrap all operations in a transaction
+      await this.prisma.$transaction(async (prisma) => {
+        // 1. First delete lessons (deepest dependency)
+        await prisma.lesson.deleteMany({
+          where: {
+            module_id: {
+              in: (
+                await prisma.module.findMany({
+                  where: { course_id: courseId },
+                  select: { id: true },
+                })
+              ).map((module) => module.id),
+            },
+          },
+        });
 
-    // Delete the lessons associated with course module
-    await this.prisma.lesson.deleteMany({
-      where: {
-        moduleId: {
-          in: course.modules.map((module) => module.id),
-        },
-      },
-    });
+        // 2. Then delete modules
+        await prisma.module.deleteMany({
+          where: { course_id: courseId },
+        });
 
-    // Delete the modules associated with course
-    await this.prisma.module.deleteMany({
-      where: {
-        courseId: courseId,
-      },
-    });
+        // 3. Delete other course dependencies (add as needed)
+        await prisma.enrollment.deleteMany({ where: { course_id: courseId } });
+        await prisma.review.deleteMany({ where: { course_id: courseId } });
+        await prisma.certificate.deleteMany({ where: { course_id: courseId } });
 
-    // Delete the course from the database
-    await this.prisma.course.delete({
-      where: {
-        id: courseId,
-      },
-    });
+        // 4. Finally delete the course
+        await prisma.course.delete({
+          where: { id: courseId },
+        });
+      });
 
-    return { message: 'Course deleted successfully' };
+      return {
+        success: true,
+        message: 'Course and all associated data deleted successfully',
+      };
+    } catch (error) {
+      console.error('Failed to delete course:', error);
+      return {
+        success: false,
+        message: `Failed to delete course: ${error.message}`,
+      };
+    }
   }
 
   private extractPublicIdFromUrl(url: string): string {

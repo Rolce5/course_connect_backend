@@ -40,7 +40,7 @@ export class LessonsController {
   }
 
   @Get(':moduleId')
-  getLessonssByModuleId(@Param('moduleId', ParseIntPipe) moduleId: number) {
+  getLessonsByModuleId(@Param('moduleId', ParseIntPipe) moduleId: number) {
     return this.lessonsService.getLessonsByModuleeId(moduleId);
   }
 

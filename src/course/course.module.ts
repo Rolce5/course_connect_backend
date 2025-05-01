@@ -36,4 +36,4 @@ import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
   controllers: [CourseController],
   providers: [CourseService, PrismaService],
 })
-export class CourseModule {}
+export class CourseModule { }

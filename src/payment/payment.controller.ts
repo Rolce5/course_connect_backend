@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   HttpCode,
   HttpStatus,
@@ -18,9 +19,18 @@ import { JwtGuard } from 'src/auth/guard';
 import { Response } from 'express';
 
 @UseGuards(JwtGuard) // Apply the guard to ensure the user is authenticated
-@Controller('api/payment')
+@Controller('api/payments')
 export class PaymentController {
   constructor(private paymentService: PaymentService) {}
+
+  @Get()
+  async getPaymentHistory(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  )
+  {
+    return this.paymentService.getAllPayments(page, limit);
+  }
 
   @Post('initiate')
   async initiate(
@@ -35,10 +45,10 @@ export class PaymentController {
     return this.paymentService.verifyPayment(transactionId);
   }
 
-@Post('fapshi')
+  @Post('fapshi')
   @HttpCode(200) // Webhooks typically need to return 200 immediately
   async handleFapshiWebhook(@Body() body: any, @Res() res: Response) {
-    console.log("triggered");
+    console.log('triggered');
     try {
       await this.paymentService.processWebhookEvent(body);
       return res.send();

@@ -26,12 +26,12 @@ export class createCourseDto {
   @IsOptional()
   @IsNumber()
   @Transform(({ value }) => (value === "" ? null : parseFloat(value))) // Convert empty string to null for pricing
-  pricing?: number;
+  pricing?: number | null;;
 
   @IsOptional()
   @IsNumber()
   @Transform(({ value }) => (value === "" ? null : parseFloat(value))) // Convert empty string to null for originalPrice
-  originalPrice?: number;
+  originalPrice?: number | null;;
 
   @IsInt()
   @IsNotEmpty()

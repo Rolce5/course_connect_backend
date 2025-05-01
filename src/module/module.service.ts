@@ -44,7 +44,7 @@ export class ModuleService {
 
       // 2. Get all modules in this course to find the list of orders
       const modulesInCourse = await this.prisma.module.findMany({
-        where: { courseId: dto.courseId },
+        where: { course_id: dto.courseId },
         orderBy: { order: 'asc' },
       });
 
@@ -78,7 +78,7 @@ export class ModuleService {
           description: dto.description,
           duration: dto.duration,
           order: dto.order,
-          courseId: dto.courseId,
+          course_id: dto.courseId,
         },
       });
 
@@ -117,7 +117,7 @@ export class ModuleService {
     try {
       const module = await this.prisma.module.findMany({
         where: {
-          courseId,
+          course_id: courseId,
         },
         include: { lessons: true, course: true },
         orderBy: {
@@ -136,7 +136,7 @@ export class ModuleService {
     try {
       // Get only the highest order module (most efficient approach)
       const highestOrderModule = await this.prisma.module.findFirst({
-        where: { courseId },
+        where: { course_id: courseId },
         select: { order: true }, // Only fetch the order field
         orderBy: { order: 'desc' },
       });
@@ -208,7 +208,7 @@ export class ModuleService {
   ) {
     // Fetch all modules in the same course, sorted by order
     const modules = await this.prisma.module.findMany({
-      where: { courseId: module.courseId },
+      where: { course_id: module.course_id },
       orderBy: { order: 'asc' },
     });
 
@@ -243,7 +243,7 @@ export class ModuleService {
         // Moving up - increment orders of modules between new and old positions
         await prisma.module.updateMany({
           where: {
-            courseId: module.courseId,
+            course_id: module.course_id,
             order: { gte: newOrder, lt: oldOrder },
           },
           data: { order: { increment: 1 } },
@@ -252,7 +252,7 @@ export class ModuleService {
         // Moving down - decrement orders of modules between old and new positions
         await prisma.module.updateMany({
           where: {
-            courseId: module.courseId,
+            course_id: module.course_id,
             order: { gt: oldOrder, lte: newOrder },
           },
           data: { order: { decrement: 1 } },
@@ -282,7 +282,7 @@ export class ModuleService {
       const modules = await this.prisma.module.findMany({
         where: {
           id: { in: moduleIds },
-          courseId: courseId,
+          course_id: courseId,
         },
       });
 
@@ -294,7 +294,7 @@ export class ModuleService {
 
       // Get current maximum order value in the course
       const maxOrderResult = await this.prisma.module.aggregate({
-        where: { courseId: courseId },
+        where: { course_id: courseId },
         _max: { order: true },
       });
       const maxOrder = maxOrderResult._max.order || 0;
@@ -304,7 +304,7 @@ export class ModuleService {
 
       // Update all modules in the course to temporary unique values
       await this.prisma.module.updateMany({
-        where: { courseId: courseId },
+        where: { course_id: courseId },
         data: {
           order: {
             // This creates unique temporary values by adding the offset to current order
@@ -338,7 +338,7 @@ export class ModuleService {
       },
       select: {
         order: true,
-        courseId: true,
+        course_id: true,
       },
     });
   
@@ -346,7 +346,7 @@ export class ModuleService {
       throw new NotFoundException(`Module with ID ${moduleId} not found`);
     }
   
-    const { order, courseId } = module;
+    const { order, course_id } = module;
   
     // Start a transaction to ensure atomic operations
     const transaction = await this.prisma.$transaction(async (prisma) => {
@@ -354,7 +354,7 @@ export class ModuleService {
         // 1. Find and delete all lessons associated with the module
         const lessons = await prisma.lesson.findMany({
           where: {
-            moduleId: moduleId,
+            module_id: moduleId,
           },
           select: {
             videoUrl: true,
@@ -374,14 +374,14 @@ export class ModuleService {
         // 2. Delete the lessons from the database
         await prisma.lesson.deleteMany({
           where: {
-            moduleId: moduleId,
+            module_id: moduleId,
           },
         });
   
         // 3. Get all modules in the course to calculate temporary values
         const allModules = await prisma.module.findMany({
           where: {
-            courseId: courseId,
+            course_id: course_id,
           },
           orderBy: {
             order: 'asc',
@@ -394,7 +394,7 @@ export class ModuleService {
         // 5. First set all modules to temporary negative orders
         await prisma.module.updateMany({
           where: {
-            courseId: courseId,
+            course_id: course_id,
           },
           data: {
             order: {

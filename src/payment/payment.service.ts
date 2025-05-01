@@ -19,8 +19,7 @@ export class PaymentService {
     apikey: process.env.FAPSHI_SECRET_KEY,
   };
 
-  private readonly logger = new Logger(PaymentService.name); 
-
+  private readonly logger = new Logger(PaymentService.name);
 
   constructor(
     private prisma: PrismaService,
@@ -32,6 +31,36 @@ export class PaymentService {
     return {
       message: e?.response?.data?.message || 'An error occurred',
       statusCode: e?.response?.status || 500,
+    };
+  }
+
+  async getAllPayments(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [payments, totalCount] = await Promise.all([
+      this.prisma.payment.findMany({
+        skip,
+        take: limit,
+        include: {
+          user: { select: { first_name: true, last_name: true } },
+          course: { select: { title: true } },
+          paymentHistory: { orderBy: { created_at: 'desc' } },
+        },
+        orderBy: { created_at: 'desc' },
+      }),
+      this.prisma.payment.count()
+    ]);
+
+    return {
+      data: payments,
+      pagination: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
+        hasNextPage: page * limit < totalCount,
+        hasPreviousPage: page > 1,
+      },
     };
   }
 
@@ -58,8 +87,8 @@ export class PaymentService {
     // Create the payment record
     const payment = await this.prisma.payment.create({
       data: {
-        userId: user.id,
-        courseId,
+        user_id: user.id,
+        course_id: courseId,
         transaction_id: transactionId,
         amount: amount,
         status: 'pending',
@@ -69,7 +98,7 @@ export class PaymentService {
     // Create initial payment history record
     await this.prisma.paymentHistory.create({
       data: {
-        paymentId: payment.id,
+        payment_id: payment.id,
         status: 'pending',
         amount: amount,
       },
@@ -135,8 +164,8 @@ export class PaymentService {
           // 5. Check if enrollment already exists
           const existingEnrollment = await prisma.enrollment.findFirst({
             where: {
-              userId: payment.userId,
-              courseId: payment.courseId,
+              user_id: payment.user_id,
+              course_id: payment.course_id,
             },
           });
 
@@ -144,8 +173,8 @@ export class PaymentService {
           if (!existingEnrollment) {
             await prisma.enrollment.create({
               data: {
-                userId: payment.userId,
-                courseId: payment.courseId,
+                user_id: payment.user_id,
+                course_id: payment.course_id,
                 status: 'IN_PROGRESS',
                 progress: 0,
               },
@@ -155,7 +184,7 @@ export class PaymentService {
           return {
             success: true,
             message: 'Payment verified and enrollment processed',
-            courseId: payment.courseId,
+            courseId: payment.course_id,
           };
         });
       } else {
@@ -174,9 +203,7 @@ export class PaymentService {
           .get(`${process.env.BASE_URL}/payment-status/${transactionId}`, {
             headers: this.headers,
           })
-          .pipe(
-            catchError((err) => throwError(() => this.handleError(err)))
-          ),
+          .pipe(catchError((err) => throwError(() => this.handleError(err)))),
       );
 
       return {
@@ -189,11 +216,10 @@ export class PaymentService {
     }
   }
 
-
   async processWebhookEvent(webhookData: any): Promise<void> {
     // Verify the transaction first
     const event = await this.getPaymentStatus(webhookData.transId);
-    
+
     if (event.statusCode !== 200) {
       this.logger.error(`Invalid transaction status: ${event.message}`);
       throw new Error(`Transaction verification failed: ${event.message}`);
@@ -230,5 +256,4 @@ export class PaymentService {
   private async handleExpiredPayment(event: any): Promise<void> {
     // ... existing implementation ...
   }
-
 }

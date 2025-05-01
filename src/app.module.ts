@@ -16,14 +16,17 @@ import { CloudinaryService } from './cloudinary/cloudinary.service';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { ModuleController } from './module/module.controller';
 import { ModuleModule } from './module/module.module';
-import { StudentService } from './student/student.service';
-import { StudentModule } from './student/student.module';
 import { PaymentController } from './payment/payment.controller';
 import { PaymentModule } from './payment/payment.module';
+import { QuizModule } from './quiz/quiz.module';
+import { QuizQuestionController } from './quiz-question/quiz-question.controller';
+import { QuizQuestionModule } from './quiz-question/quiz-question.module';
+import { NoteController } from './note/note.controller';
+import { NoteModule } from './note/note.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, UserModule, PrismaModule, CourseModule, LessonsModule, EnrollmentModule, CloudinaryModule, ModuleModule, StudentModule, PaymentModule],
-  controllers: [AppController, CourseController, EnrollmentController, ModuleController, PaymentController],
-  providers: [AppService, CourseService, EnrollmentService, CloudinaryService, StudentService],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, UserModule, PrismaModule, CourseModule, LessonsModule, EnrollmentModule, CloudinaryModule, ModuleModule, PaymentModule, QuizModule, QuizQuestionModule, NoteModule],
+  controllers: [AppController, CourseController, EnrollmentController, ModuleController, PaymentController, QuizQuestionController, NoteController],
+  providers: [AppService, CourseService, EnrollmentService, CloudinaryService, ],
 })
 export class AppModule {}
