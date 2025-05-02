@@ -24,21 +24,21 @@ export class LessonsService {
   // ) {
   //   try {
   //     let videoUrl: string | undefined;
-  
+
   //     if (videoFile) {
   //       console.log("Uploading video:", videoFile); // Log video file details
   //       const videoUploadResponse = await this.cloudinary.uploadVideo(videoFile);
   //       videoUrl = videoUploadResponse?.secure_url;
   //       console.log("Video uploaded, URL:", videoUrl); // Log the uploaded video URL
   //     }
-  
+
   //     const course = await this.prisma.lesson.create({
   //       data: {
   //         videoUrl,
   //         ...dto,
   //       },
   //     });
-  
+
   //     return course;
   //   } catch (error) {
   //     console.error('Error in adding lesson to this course:', error);
@@ -51,29 +51,30 @@ export class LessonsService {
       const existingLesson = await this.prisma.lesson.findFirst({
         where: {
           module_id: dto.moduleId,
-          order: dto.order
-        }
+          order: dto.order,
+        },
       });
-  
+
       if (existingLesson) {
         // Increment orders of subsequent lessons
         await this.prisma.lesson.updateMany({
           where: {
             module_id: dto.moduleId,
-            order: { gte: dto.order }
+            order: { gte: dto.order },
           },
           data: {
-            order: { increment: 1 }
-          }
+            order: { increment: 1 },
+          },
         });
       }
-  
+
       let videoUrl: string | undefined;
       if (videoFile) {
-        const videoUploadResponse = await this.cloudinary.uploadVideo(videoFile);
+        const videoUploadResponse =
+          await this.cloudinary.uploadVideo(videoFile);
         videoUrl = videoUploadResponse?.secure_url;
       }
-  
+
       return await this.prisma.lesson.create({
         data: {
           videoUrl,
@@ -88,12 +89,13 @@ export class LessonsService {
     } catch (error) {
       console.error('Error creating lesson:', error);
       if (error.code === 'P2002') {
-        throw new ConflictException('A lesson with this order already exists in this module');
+        throw new ConflictException(
+          'A lesson with this order already exists in this module',
+        );
       }
       throw new InternalServerErrorException('Failed to create lesson');
     }
   }
-  
 
   async getLessonsByModuleeId(moduleId: number) {
     return this.prisma.lesson.findMany({
@@ -107,7 +109,7 @@ export class LessonsService {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id: lessonId },
     });
-    
+
     if (!lesson) {
       throw new BadRequestException('Lesson not found');
     }
@@ -115,9 +117,12 @@ export class LessonsService {
     // Update the fields in the lesson
     const updatedLessonData: any = {};
     if (updateLessonDto.title) updatedLessonData.title = updateLessonDto.title;
-    if (updateLessonDto.content) updatedLessonData.content = updateLessonDto.content;
-    if (updateLessonDto.description) updatedLessonData.description = updateLessonDto.description;
-    if (updateLessonDto.duration) updatedLessonData.duration = updateLessonDto.duration;
+    if (updateLessonDto.content)
+      updatedLessonData.content = updateLessonDto.content;
+    if (updateLessonDto.description)
+      updatedLessonData.description = updateLessonDto.description;
+    if (updateLessonDto.duration)
+      updatedLessonData.duration = updateLessonDto.duration;
 
     // If the order is provided, we need to handle ordering logic
     if (updateLessonDto.order) {
@@ -147,8 +152,8 @@ export class LessonsService {
               this.prisma.lesson.update({
                 where: { id: l.id },
                 data: { order: l.order + 1 },
-              })
-            )
+              }),
+            ),
         );
       } else if (newOrder > oldOrder) {
         // Moving down: Shift lessons up
@@ -159,8 +164,8 @@ export class LessonsService {
               this.prisma.lesson.update({
                 where: { id: l.id },
                 data: { order: l.order - 1 },
-              })
-            )
+              }),
+            ),
         );
       }
 
@@ -169,7 +174,7 @@ export class LessonsService {
         this.prisma.lesson.update({
           where: { id: lessonId },
           data: { ...updatedLessonData, order: newOrder },
-        })
+        }),
       );
 
       // Perform the transaction
@@ -185,7 +190,6 @@ export class LessonsService {
     return { message: 'Lesson updated successfully' };
   }
 
-
   async remove(id: number) {
     const lesson = await this.prisma.lesson.findUnique({ where: { id } });
 
@@ -193,8 +197,8 @@ export class LessonsService {
       throw new NotFoundException('Lesson not found');
     }
 
-     // Delete the course video from Cloudinary if it exists
-     if (lesson.videoUrl) {
+    // Delete the course video from Cloudinary if it exists
+    if (lesson.videoUrl) {
       const publicId = lesson.videoUrl.split('/').pop()?.split('.')[0]; // Extract publicId from the URL
       if (publicId) {
         await this.cloudinary.deleteFile(publicId, 'video'); // Delete the image from Cloudinary
@@ -233,6 +237,164 @@ export class LessonsService {
       console.error('Error fetching highest order:', error);
       throw new InternalServerErrorException('Failed to fetch module order');
     }
+  }
+
+  async completeLesson(userId: number, lessonId: number) {
+    try {
+      await this.validateLessonAccess(userId, lessonId);
+
+      const lesson = await this.prisma.lesson.findUnique({
+        where: { id: lessonId },
+        include: {
+          module: {
+            select: {
+              id: true,
+              course_id: true,
+              lessons: {
+                orderBy: { order: 'asc' },
+                select: { id: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (!lesson) {
+        throw new NotFoundException('Lesson not found');
+      }
+
+      return await this.prisma.$transaction(async (tx) => {
+        // 1. Verify enrollment exists
+        const enrollment = await tx.enrollment.findFirst({
+          where: {
+            user_id: userId,
+            course_id: lesson.module.course_id,
+          },
+        });
+
+        if (!enrollment) {
+          throw new BadRequestException('User is not enrolled in this course');
+        }
+
+        // 2. Update lesson progress
+        const progress = await tx.lessonProgress.upsert({
+          where: {
+            user_id_lesson_id: {
+              user_id: userId,
+              lesson_id: lessonId,
+            },
+          },
+          create: {
+            user_id: userId,
+            lesson_id: lessonId,
+            module_id: lesson.module_id, // Add this
+            course_id: lesson.module.course_id, // Add this
+
+            completed: true,
+            completed_at: new Date(),
+          },
+          update: {
+            completed: true,
+            completed_at: new Date(),
+          },
+        });
+
+        // 3. Update enrollment last lesson
+        await tx.enrollment.updateMany({
+          where: {
+            user_id: userId,
+            course_id: lesson.module.course_id,
+          },
+          data: {
+            last_lesson_id: lessonId,
+          },
+        });
+
+        // 4. Calculate and update course progress (optimized parallel queries)
+        const [totalLessons, completedLessons] = await Promise.all([
+          tx.lesson.count({
+            where: {
+              module: {
+                course_id: lesson.module.course_id,
+              },
+            },
+          }),
+          tx.lessonProgress.count({
+            where: {
+              user_id: userId,
+              course_id: lesson.module.course_id,
+              completed: true,
+            },
+          }),
+        ]);
+
+        const newProgress = Math.round((completedLessons / totalLessons) * 100);
+
+        await tx.enrollment.updateMany({
+          where: {
+            user_id: userId,
+            course_id: lesson.module.course_id,
+          },
+          data: {
+            progress: newProgress,
+            status: newProgress === 100 ? 'COMPLETED' : 'IN_PROGRESS',
+          },
+        });
+
+        return progress;
+      });
+    } catch (error) {
+      // this.logger.error(`Error completing lesson ${lessonId}`, error.stack);
+      throw error;
+    }
+  }
+
+  private async validateLessonAccess(userId: number, lessonId: number) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        module: {
+          select: {
+            course_id: true,
+            lessons: {
+              orderBy: { order: 'asc' },
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('Lesson not found');
+    }
+
+    // Find the lesson's position in the module
+    const lessonIndex = lesson.module.lessons.findIndex(
+      (l) => l.id === lessonId,
+    );
+
+    // If it's not the first lesson, check previous lessons
+    if (lessonIndex > 0) {
+      const previousLessonId = lesson.module.lessons[lessonIndex - 1].id;
+
+      const previousCompleted = await this.prisma.lessonProgress.findUnique({
+        where: {
+          user_id_lesson_id: {
+            user_id: userId,
+            lesson_id: previousLessonId,
+          },
+        },
+      });
+
+      if (!previousCompleted?.completed) {
+        throw new BadRequestException(
+          'You must complete the previous lesson first',
+        );
+      }
+    }
+
+    return true;
   }
 
   // Helper function to validate the order

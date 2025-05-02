@@ -165,12 +165,156 @@ export class QuizService {
     });
   }
 
+  // async submitQuizAnswers(
+  //   userId: number,
+  //   quizId: number,
+  //   dto: SubmitQuizAnswersDto,
+  // ) {
+  //   console.log('hit');
+  //   // 1. Validate the quiz exists and has questions
+  //   const quiz = await this.prisma.quiz.findUnique({
+  //     where: { id: quizId },
+  //     include: {
+  //       questions: {
+  //         include: {
+  //           options: true,
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   if (!quiz) {
+  //     throw new NotFoundException(`Quiz with ID ${quizId} not found`);
+  //   }
+
+  //   if (!quiz.questions || quiz.questions.length === 0) {
+  //     throw new BadRequestException('This quiz has no questions');
+  //   }
+
+  //   // 2. Calculate score (with validation for missing answers)
+  //   let correctCount = 0;
+  //   const answerRecords = quiz.questions.map((question) => {
+  //     const selectedOptionId = dto.answers[question.id];
+
+  //     if (selectedOptionId === undefined) {
+  //       throw new BadRequestException(
+  //         `No answer provided for question ${question.id}`,
+  //       );
+  //     }
+
+  //     const isCorrect = question.options.some(
+  //       (option) => option.id === selectedOptionId && option.is_correct,
+  //     );
+
+  //     if (isCorrect) correctCount++;
+
+  //     return {
+  //       question_id: question.id,
+  //       selected_option_id: selectedOptionId,
+  //       is_correct: isCorrect,
+  //     };
+  //   });
+
+  //   const score = Math.round((correctCount / quiz.questions.length) * 100);
+
+  //   // 3. Create attempt first, then answers
+  //   const attempt = await this.prisma.quizAttempt.create({
+  //     data: {
+  //       user_id: userId,
+  //       quiz_id: quizId,
+  //       score,
+  //     },
+  //   });
+
+  //   // 4. Create all answers in a single query
+  //   await this.prisma.quizAnswer.createMany({
+  //     data: answerRecords.map((answer) => ({
+  //       attempt_id: attempt.id,
+  //       question_id: answer.question_id,
+  //       selected_option_id: answer.selected_option_id,
+  //       is_correct: answer.is_correct,
+  //     })),
+  //   });
+
+  //   return {
+  //     id: attempt.id,
+  //     score: attempt.score,
+  //     correctCount,
+  //     totalQuestions: quiz.questions.length,
+  //   };
+  // }
+  // In your quiz.service.ts
+  // async submitQuizAnswers(
+  //   userId: number,
+  //   quizId: number,
+  //   dto: SubmitQuizAnswersDto,
+  // ) {
+  //   // ... existing validation code ...
+
+  //   // Create the attempt
+  //   const attempt = await this.prisma.quizAttempt.create({
+  //     data: {
+  //       user_id: userId,
+  //       quiz_id: quizId,
+  //       score,
+  //     },
+  //   });
+
+  //   // Create all answers
+  //   await this.prisma.quizAnswer.createMany({
+  //     data: answerRecords.map((answer) => ({
+  //       attempt_id: attempt.id,
+  //       question_id: answer.question_id,
+  //       selected_option_id: answer.selected_option_id,
+  //       is_correct: answer.is_correct,
+  //     })),
+  //   });
+
+  //   // Update lesson progress if score is passing (70% or higher)
+  //   if (score >= 70) {
+  //     const quiz = await this.prisma.quiz.findUnique({
+  //       where: { id: quizId },
+  //       select: { lesson_id: true },
+  //     });
+
+  //     await this.prisma.lessonProgress.upsert({
+  //       where: {
+  //         user_id_lesson_id: {
+  //           user_id: userId,
+  //           lesson_id: quiz.lesson_id,
+  //         },
+  //       },
+  //       create: {
+  //         user_id: userId,
+  //         lesson_id: quiz.lesson_id,
+  //         module_id: quiz.lesson.module_id, // Add this
+  //         course_id: quiz.lesson.module.course_id, // Add this
+  //         completed: true,
+  //         completed_at: new Date(),
+  //       },
+  //       update: {
+  //         completed: true,
+  //         completed_at: new Date(),
+  //       },
+  //     });
+
+  //     // Update enrollment last lesson if needed
+  //     await this.updateEnrollmentProgress(userId, quiz.lesson_id);
+  //   }
+
+  //   return {
+  //     id: attempt.id,
+  //     score: attempt.score,
+  //     correctCount,
+  //     totalQuestions: quiz.questions.length,
+  //   };
+  // }
+
   async submitQuizAnswers(
     userId: number,
     quizId: number,
     dto: SubmitQuizAnswersDto,
   ) {
-    console.log('hit');
     // 1. Validate the quiz exists and has questions
     const quiz = await this.prisma.quiz.findUnique({
       where: { id: quizId },
@@ -178,6 +322,17 @@ export class QuizService {
         questions: {
           include: {
             options: true,
+          },
+        },
+        lesson: {
+          select: {
+            id: true,
+            module_id: true,
+            module: {
+              select: {
+                course_id: true,
+              },
+            },
           },
         },
       },
@@ -217,7 +372,7 @@ export class QuizService {
 
     const score = Math.round((correctCount / quiz.questions.length) * 100);
 
-    // 3. Create attempt first, then answers
+    // Create the attempt
     const attempt = await this.prisma.quizAttempt.create({
       data: {
         user_id: userId,
@@ -225,9 +380,8 @@ export class QuizService {
         score,
       },
     });
-    
 
-    // 4. Create all answers in a single query
+    // Create all answers
     await this.prisma.quizAnswer.createMany({
       data: answerRecords.map((answer) => ({
         attempt_id: attempt.id,
@@ -237,12 +391,72 @@ export class QuizService {
       })),
     });
 
+    // Update lesson progress if score is passing (70% or higher)
+    if (score >= 70 && quiz.lesson) {
+      await this.prisma.lessonProgress.upsert({
+        where: {
+          user_id_lesson_id: {
+            user_id: userId,
+            lesson_id: quiz.lesson.id,
+          },
+        },
+        create: {
+          user_id: userId,
+          lesson_id: quiz.lesson.id,
+          module_id: quiz.lesson.module_id,
+          course_id: quiz.lesson.module.course_id,
+          completed: true,
+          completed_at: new Date(),
+        },
+        update: {
+          completed: true,
+          completed_at: new Date(),
+        },
+      });
+
+      // Update enrollment last lesson if needed
+      await this.updateEnrollmentProgress(userId, quiz.lesson.id);
+    }
+
     return {
       id: attempt.id,
       score: attempt.score,
       correctCount,
       totalQuestions: quiz.questions.length,
     };
+  }
+
+  private async updateEnrollmentProgress(userId: number, lessonId: number) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { module: { select: { course_id: true } } },
+    });
+
+     if (!lesson) {
+       throw new NotFoundException(`Quiz with ID ${lessonId} not found`);
+     }
+
+    await this.prisma.enrollment.updateMany({
+      where: {
+        user_id: userId,
+        course_id: lesson.module.course_id,
+      },
+      data: {
+        last_lesson_id: lessonId,
+        status: 'IN_PROGRESS',
+      },
+    });
+  }
+
+  async getLessonProgress(userId: number, lessonId: number) {
+    return this.prisma.lessonProgress.findUnique({
+      where: {
+        user_id_lesson_id: {
+          user_id: userId,
+          lesson_id: lessonId,
+        },
+      },
+    });
   }
   async getNewQuizVersion(quizId: number) {
     const originalQuiz = await this.prisma.quiz.findUnique({
@@ -282,6 +496,4 @@ export class QuizService {
       })),
     };
   }
-
- 
 }

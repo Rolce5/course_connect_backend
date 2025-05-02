@@ -28,6 +28,7 @@ model User {
   reviews        Review[]
   quizAttempts   QuizAttempt[]
   notes          Note[]
+  lessonProgresses LessonProgress[] // Add this line
 
   @@map("users")
 }
@@ -59,7 +60,8 @@ model Course {
   enrollments      Enrollment[]            
   modules          Module[]                
   payments         Payment[]               
-  reviews          Review[]                
+  reviews          Review[]  
+  lessonProgresses LessonProgress[] // Add this line              
 
   @@index([instructor_id])
   @@index([category])
@@ -80,6 +82,7 @@ model Module {
 
   // relations
   lessons     Lesson[] 
+  lessonProgresses LessonProgress[] // Add this line
   course      Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
   @@unique([course_id, order])
@@ -103,6 +106,8 @@ model Lesson {
   module      Module   @relation(fields: [module_id], references: [id], onDelete: Cascade)
   quiz        Quiz?
   notes       Note[]
+  lessonProgresses LessonProgress[]  // Add this line for the inverse relation
+
 
   @@unique([module_id, order])
   @@map("lessons")
@@ -199,7 +204,31 @@ model QuizAnswer {
   @@index([selected_option_id])
     @@map("quiz_answers")
 }
+model LessonProgress {
+  user_id      Int
+  lesson_id    Int
+  module_id    Int  // Added for direct access
+  course_id    Int  // Added for direct access
+  completed    Boolean     @default(false)
+    video_progress   Int?      // Percentage watched (0-100)
+  last_accessed_at DateTime? // When user last viewed the lesson
+  first_completed_at DateTime? // First time lesson was completed
 
+  completed_at DateTime?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+
+  // Relations
+  user         User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lesson       Lesson      @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  module       Module      @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  course       Course      @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, lesson_id])
+  @@index([module_id])  // For faster module-based queries
+  @@index([course_id])  // For faster course-based queries
+  @@map("lesson_progress")
+}
 model Note {
   id           Int      @id @default(autoincrement())
   content      String   @db.Text

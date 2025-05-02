@@ -54,14 +54,13 @@ export class QuizController {
     @GetUser('id') userId: number,
     @Param('id', ParseIntPipe) quizId: number,
     @Body() dto: SubmitQuizAnswersDto,
-  )
-  {
+  ) {
     return this.quizService.submitQuizAnswers(userId, quizId, dto);
   }
+
 
   @Get(':id/new-version')
   getNewQuizVersion(@Param('id', ParseIntPipe) quizId: number) {
     return this.quizService.getNewQuizVersion(quizId);
   }
-
 }
