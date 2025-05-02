@@ -3,9 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = env("DATABASE_PROVIDER") // "postgresql" or "mysql"
+ // provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
-  relationMode = "prisma"
 }
 
 model User {
