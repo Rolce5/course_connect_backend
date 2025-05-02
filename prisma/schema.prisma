@@ -13,7 +13,7 @@ model User {
   last_name      String
   email          String           @unique
   password       String
-  role           user_role
+  role           Role
   title          String?
   profilePic     String?
   bio            String?          @db.Text
@@ -348,7 +348,7 @@ model PaymentHistory {
   @@map("payment_histories")
 }
 
-enum user_role {
+enum Role {
   ADMIN
   INSTRUCTOR
   STUDENT

@@ -1,5 +1,5 @@
 -- Create ENUM types (PostgreSQL requires explicit ENUM creation)
-CREATE TYPE user_role AS ENUM ('ADMIN', 'INSTRUCTOR', 'STUDENT');
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'INSTRUCTOR', 'STUDENT');
 CREATE TYPE course_category AS ENUM ('WEB', 'MOBILE', 'DATA_SCIENCE', 'DESIGN', 'BUSINESS');
 CREATE TYPE course_difficulty AS ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED');
 CREATE TYPE enrollment_status AS ENUM ('COMPLETED', 'PAUSED', 'IN_PROGRESS', 'NOT_STARTED');
