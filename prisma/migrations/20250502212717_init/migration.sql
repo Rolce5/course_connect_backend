@@ -11,7 +11,7 @@ CREATE TABLE "users" (
     "last_name" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "password" VARCHAR(255) NOT NULL,
-    "role" user_role NOT NULL,
+    "role" "Role" NOT NULL,
     "title" VARCHAR(255),
     "profilePic" VARCHAR(255),
     "bio" TEXT,
