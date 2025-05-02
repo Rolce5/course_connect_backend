@@ -19,7 +19,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "npm run prisma:migrate:deploy && npm run prisma:seed && node dist/main",
+    "start:prod": "npm run prisma:migrate:deploy && npm run prisma:seed && node dist/main.js",
     "prestart:prod": "npm run prisma:generate", 
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
