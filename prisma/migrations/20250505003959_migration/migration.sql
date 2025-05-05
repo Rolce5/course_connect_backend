@@ -1,3 +1,10 @@
+-- Create ENUM types
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'INSTRUCTOR', 'STUDENT');
+CREATE TYPE CourseCategory AS ENUM ('WEB', 'MOBILE', 'DATA_SCIENCE', 'DESIGN', 'BUSINESS');
+CREATE TYPE DifficultyLevel AS ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED');
+CREATE TYPE EnrollmentStatus AS ENUM ('COMPLETED', 'PAUSED', 'IN_PROGRESS', 'NOT_STARTED');
+
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" SERIAL NOT NULL,
@@ -5,7 +12,7 @@ CREATE TABLE "users" (
     "last_name" VARCHAR(191) NOT NULL,
     "email" VARCHAR(191) NOT NULL,
     "password" VARCHAR(191) NOT NULL,
-    "role" VARCHAR(191) NOT NULL CHECK (role IN ('ADMIN', 'INSTRUCTOR', 'STUDENT')),
+    "role" "Role" NOT NULL,
     "title" VARCHAR(191),
     "profilePic" VARCHAR(191),
     "bio" TEXT,
@@ -26,8 +33,8 @@ CREATE TABLE "courses" (
     "title" VARCHAR(191) NOT NULL,
     "short_description" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
-    "category" VARCHAR(191) NOT NULL CHECK (category IN ('WEB', 'MOBILE', 'DATA_SCIENCE', 'DESIGN', 'BUSINESS')),
-    "difficulty" VARCHAR(191) NOT NULL CHECK (difficulty IN ('BEGINNER', 'INTERMEDIATE', 'ADVANCED')),
+    "category" "CourseCategory" NOT NULL ,
+    "difficulty" "DifficultyLevel" NOT NULL ,
     "rating" DOUBLE PRECISION DEFAULT 0,
     "duration" INTEGER NOT NULL,
     "total_hours" INTEGER NOT NULL,
@@ -237,7 +244,7 @@ CREATE TABLE "enrollments" (
     "user_id" INTEGER NOT NULL,
     "course_id" INTEGER NOT NULL,
     "progress" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "status" VARCHAR(191) NOT NULL DEFAULT 'NOT_STARTED' CHECK (status IN ('COMPLETED', 'PAUSED', 'IN_PROGRESS', 'NOT_STARTED')),
+    "status" "EnrollmentStatus" NOT NULL DEFAULT 'NOT_STARTED',
     "last_lesson_id" INTEGER,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
