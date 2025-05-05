@@ -269,4 +269,231 @@ export class EnrollmentService {
       data: { last_lesson_id: lastLessonId, progress, status },
     });
   }
+
+  async completeLesson(userId: number, lessonId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Get lesson with course info
+      const lesson = await tx.lesson.findUnique({
+        where: { id: lessonId },
+        include: { module: { select: { course_id: true } } },
+      });
+      if (!lesson) throw new NotFoundException('Lesson not found');
+
+      // 2. Verify enrollment
+      const enrollment = await tx.enrollment.findUnique({
+        where: {
+          user_id_course_id: {
+            user_id: userId,
+            course_id: lesson.module.course_id,
+          },
+        },
+      });
+      if (!enrollment) throw new BadRequestException('Not enrolled');
+
+      // 3. Update lesson progress
+      const now = new Date();
+      const progress = await tx.lessonProgress.upsert({
+        where: { user_id_lesson_id: { user_id: userId, lesson_id: lessonId } },
+        create: {
+          user_id: userId,
+          lesson_id: lessonId,
+          module_id: lesson.module_id,
+          course_id: lesson.module.course_id,
+          completed: true,
+          completed_at: now,
+          first_completed_at: now,
+        },
+        update: {
+          completed: true,
+          completed_at: now,
+          first_completed_at: { set: now }, // Only set if null
+        },
+      });
+
+      // 4. Update enrollment
+      await tx.enrollment.update({
+        where: { id: enrollment.id },
+        data: { last_lesson_id: lessonId },
+      });
+
+      // 5. Update course progress (simplified)
+      const [completed, total] = await Promise.all([
+        tx.lessonProgress.count({
+          where: {
+            user_id: userId,
+            course_id: lesson.module.course_id,
+            completed: true,
+          },
+        }),
+        tx.lesson.count({
+          where: { module: { course_id: lesson.module.course_id } },
+        }),
+      ]);
+
+      const newProgress = Math.round((completed / total) * 100);
+      await tx.enrollment.update({
+        where: { id: enrollment.id },
+        data: {
+          progress: newProgress,
+          status: newProgress === 100 ? 'COMPLETED' : 'IN_PROGRESS',
+        },
+      });
+
+      return progress;
+    });
+  }
+
+  private async validateLessonAccess(userId: number, lessonId: number) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        module: {
+          select: {
+            course_id: true,
+            lessons: { orderBy: { order: 'asc' }, select: { id: true } },
+          },
+        },
+      },
+    });
+
+    if (!lesson) throw new NotFoundException('Lesson not found');
+
+    // Check if previous lesson is completed (if not first lesson)
+    const lessonIndex = lesson.module.lessons.findIndex(
+      (l) => l.id === lessonId,
+    );
+    if (lessonIndex > 0) {
+      const prevLessonId = lesson.module.lessons[lessonIndex - 1].id;
+      const prevCompleted = await this.prisma.lessonProgress.findUnique({
+        where: {
+          user_id_lesson_id: { user_id: userId, lesson_id: prevLessonId },
+        },
+        select: { completed: true },
+      });
+
+      if (!prevCompleted?.completed) {
+        throw new BadRequestException('Complete previous lesson first');
+      }
+    }
+
+    return true;
+  }
+
+  // async getLessonProgress(userId: number, lessonId: number) {
+  //   const progress = await this.prisma.lessonProgress.findUnique({
+  //     where: {
+  //       user_id_lesson_id: {
+  //         user_id: userId,
+  //         lesson_id: lessonId,
+  //       },
+  //     },
+  //     select: {
+  //       completed: true,
+  //       video_progress: true,
+  //       last_accessed_at: true,
+  //       first_completed_at: true,
+  //     },
+  //   });
+
+  //   return {
+  //     completed: progress?.completed || false,
+  //     videoProgress: progress?.video_progress || 0,
+  //     lastAccessed: progress?.last_accessed_at,
+  //     firstCompleted: progress?.first_completed_at,
+  //   };
+  // }
+  async getLessonProgress(userId: number, lessonId: number) {
+    const progress = await this.prisma.lessonProgress.findUnique({
+      where: {
+        user_id_lesson_id: {
+          user_id: userId,
+          lesson_id: lessonId,
+        },
+      },
+      select: {
+        completed: true,
+        video_progress: true,
+        last_accessed_at: true,
+        first_completed_at: true,
+      },
+    });
+
+    // Get all quizzes associated with this lesson
+    const quizzes = await this.prisma.quiz.findMany({
+      where: { lesson_id: lessonId },
+      select: { id: true },
+    });
+
+    // Check for passing attempts in any of the lesson's quizzes
+    const hasPassingQuiz =
+      quizzes.length > 0
+        ? await this.prisma.quizAttempt.findFirst({
+            where: {
+              user_id: userId,
+              quiz_id: { in: quizzes.map((q) => q.id) },
+              score: { gte: 70 },
+            },
+          })
+        : null;
+
+    return {
+      completed: progress?.completed || hasPassingQuiz !== null,
+      videoProgress: progress?.video_progress || 0,
+      lastAccessed: progress?.last_accessed_at,
+      firstCompleted: progress?.first_completed_at,
+    };
+  }
+
+  async updateVideoProgress(
+    userId: number,
+    lessonId: number,
+    progress: number,
+  ) {
+    // First get the lesson to obtain module_id and course_id
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: {
+        module_id: true,
+        module: {
+          select: {
+            course_id: true,
+          },
+        },
+      },
+    });
+
+    if (!lesson) {
+      throw new NotFoundException('Lesson not found');
+    }
+
+    return this.prisma.lessonProgress.upsert({
+      where: { user_id_lesson_id: { user_id: userId, lesson_id: lessonId } },
+      create: {
+        user_id: userId,
+        lesson_id: lessonId,
+        module_id: lesson.module_id,
+        course_id: lesson.module.course_id,
+        video_progress: Math.min(100, Math.max(0, progress)),
+        last_accessed_at: new Date(),
+      },
+      update: {
+        video_progress: Math.min(100, Math.max(0, progress)),
+        last_accessed_at: new Date(),
+      },
+    });
+  }
+
+  async getCourseLessonProgress(userId: number, courseId: number) {
+    return this.prisma.lessonProgress.findMany({
+      where: {
+        user_id: userId,
+        course_id: courseId,
+      },
+      select: {
+        lesson_id: true,
+        completed: true,
+        first_completed_at: true,
+      },
+    });
+  }
 }

@@ -36,6 +36,7 @@ export class CourseService {
         },
         include: {
           instructor: true,
+          enrollments: true,
         },
       });
     } else {
@@ -84,6 +85,7 @@ export class CourseService {
           pricing: dto.pricing === undefined ? null : dto.pricing,
           original_price: dto.originalPrice === undefined ? null : dto.originalPrice,
           duration: dto.duration
+          // videoUrl: dto.videoUrl 
         },
       });
 

@@ -54,4 +54,43 @@ export class EnrollmentController {
       lastLessonId,
     );
   }
+
+  @Get('lesson/:id/progress')
+  @UseGuards(JwtGuard)
+  async getLessonProgress(
+    @GetUser('id') userId: number,
+    @Param('id', ParseIntPipe) lessonId: number,
+  ) {
+    return this.enrollmentService.getLessonProgress(userId, lessonId);
+  }
+
+  @Patch('lesson/:id/video-progress')
+  async updateVideoProgress(
+    @GetUser('id') userId: number,
+    @Param('id', ParseIntPipe) lessonId: number,
+    @Body('progress', ParseIntPipe) progress: number,
+  ) {
+    return this.enrollmentService.updateVideoProgress(
+      userId,
+      lessonId,
+      progress,
+    );
+  }
+
+  @Post('lesson/:lessonId/complete')
+  async completeLesson(
+    @GetUser('id') userId: number,
+    @Param('lessonId', ParseIntPipe) lessonId: number,
+  ) {
+    return this.enrollmentService.completeLesson(userId, lessonId);
+  }
+
+  @Get(':courseId/lesson-progress')
+  @UseGuards(JwtGuard)
+  async getCourseLessonProgress(
+    @GetUser('id') userId: number,
+    @Param('courseId', ParseIntPipe) courseId: number,
+  ) {
+    return this.enrollmentService.getCourseLessonProgress(userId, courseId);
+  }
 }

@@ -82,7 +82,7 @@ model Module {
 
   // relations
   lessons     Lesson[] 
-  lessonProgresses LessonProgress[] // Add this line
+  lessonProgresses LessonProgress[] @relation("ModuleProgress") 
   course      Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
   @@unique([course_id, order])
@@ -107,6 +107,8 @@ model Lesson {
   quiz        Quiz?
   notes       Note[]
   lessonProgresses LessonProgress[]  // Add this line for the inverse relation
+  enrollmentsLast Enrollment[] @relation("LastLesson") // Added inverse for lastLesson
+
 
 
   @@unique([module_id, order])
@@ -221,7 +223,7 @@ model LessonProgress {
   // Relations
   user         User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
   lesson       Lesson      @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
-  module       Module      @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  module       Module      @relation("ModuleProgress", fields: [module_id], references: [id], onDelete: Cascade)
   course       Course      @relation(fields: [course_id], references: [id], onDelete: Cascade)
 
   @@id([user_id, lesson_id])
@@ -229,6 +231,7 @@ model LessonProgress {
   @@index([course_id])  // For faster course-based queries
   @@map("lesson_progress")
 }
+
 model Note {
   id           Int      @id @default(autoincrement())
   content      String   @db.Text
@@ -277,6 +280,8 @@ model Enrollment {
   last_lesson_id Int?
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt
+
+  lastLesson     Lesson? @relation("LastLesson", fields: [last_lesson_id], references: [id]) 
   course         Course          @relation(fields: [course_id], references: [id], onDelete: Cascade)
   user           User            @relation(fields: [user_id], references: [id])
 

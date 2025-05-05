@@ -72,8 +72,8 @@ async function bootstrap() {
     maxAge: isProduction ? '7d' : '1h',
   });
 
-  app.use(bodyParser.json({ limit: '10mb' }));
-  app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+  app.use(bodyParser.json({ limit: '50mb' }));
+  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
   // =============================================
   // 5. Start Application

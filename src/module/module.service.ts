@@ -161,6 +161,11 @@ export class ModuleService {
       throw new BadRequestException('Module not found');
     }
 
+    // if (module.course_idd !== user.courseId) {
+    //   throw new ForbiddenException();
+    // }
+
+
     try {
       // Prepare the data to update (excluding order for now)
       const updatedModuleData: any = {

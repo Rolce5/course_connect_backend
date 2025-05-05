@@ -23,9 +23,10 @@ import { QuizQuestionController } from './quiz-question/quiz-question.controller
 import { QuizQuestionModule } from './quiz-question/quiz-question.module';
 import { NoteController } from './note/note.controller';
 import { NoteModule } from './note/note.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, UserModule, PrismaModule, CourseModule, LessonsModule, EnrollmentModule, CloudinaryModule, ModuleModule, PaymentModule, QuizModule, QuizQuestionModule, NoteModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, UserModule, PrismaModule, CourseModule, LessonsModule, EnrollmentModule, CloudinaryModule, ModuleModule, PaymentModule, QuizModule, QuizQuestionModule, NoteModule, DashboardModule],
   controllers: [AppController, CourseController, EnrollmentController, ModuleController, PaymentController, QuizQuestionController, NoteController],
   providers: [AppService, CourseService, EnrollmentService, CloudinaryService, ],
 })

@@ -47,5 +47,10 @@ export class createCourseDto {
   @IsNotEmpty()
   @Transform(({ value }) => value === "true" || value === true) // Convert string to boolean for isActive
   isActive: boolean;
+
+  @IsOptional()
+  @IsUrl()
+  videoUrl?: string;
+
   
 }

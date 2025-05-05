@@ -46,8 +46,8 @@ export class ModuleController {
   editModuleById(
     @Param('id', ParseIntPipe) moduleId: number,
     @Body() dto: editModuleDto,
-  ) {
-    return this.moduleService.update(moduleId, dto);
+  )
+  {    return this.moduleService.update(moduleId, dto);
   }
 
   @Put('courses/:courseId/modules/order')
