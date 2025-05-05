@@ -4,7 +4,6 @@ CREATE TYPE "CourseCategory" AS ENUM ('WEB', 'MOBILE', 'DATA_SCIENCE', 'DESIGN',
 CREATE TYPE "DifficultyLevel" AS ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED');
 CREATE TYPE "EnrollmentStatus" AS ENUM ('COMPLETED', 'PAUSED', 'IN_PROGRESS', 'NOT_STARTED');
 
-
 -- CreateTable
 CREATE TABLE "users" (
     "id" SERIAL NOT NULL,
@@ -33,8 +32,8 @@ CREATE TABLE "courses" (
     "title" VARCHAR(191) NOT NULL,
     "short_description" VARCHAR(255) NOT NULL,
     "description" TEXT NOT NULL,
-    "category" "CourseCategory" NOT NULL ,
-    "difficulty" "DifficultyLevel" NOT NULL ,
+    "category" "CourseCategory" NOT NULL,
+    "difficulty" "DifficultyLevel" NOT NULL,
     "rating" DOUBLE PRECISION DEFAULT 0,
     "duration" INTEGER NOT NULL,
     "total_hours" INTEGER NOT NULL,
