@@ -12,7 +12,13 @@ export class DashboardController {
 
   @Get()
   async getDashboardData(@GetUser() user: User) {
-    const { role, id } = user; 
+    const { role, id } = user;
     return this.dashboardService.getDashboardData(role, id);
   }
+
+  @Get('badge-counts')
+  async getBadgeCounts(@GetUser() user: User) {
+    return this.dashboardService.getSidebarBadgeCounts(user.role, user.id);
+  }
 }
+
