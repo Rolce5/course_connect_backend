@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateQuestionDto } from './dto/create-question-dto';
 import { UpdateQuestionDto } from './dto/update-question-dto';
@@ -9,87 +9,39 @@ export class QuizQuestionService {
 
   async createQuestion(quizId: number, dto: CreateQuestionDto) {
     console.log('Incoming DTO:', JSON.stringify(dto, null, 2));
+        try {
+          const quiz = await this.prisma.quiz.findUnique({
+            where: {
+              id: quizId,
+            },
+          });
 
-    const quiz = await this.prisma.quiz.findUnique({
-      where: {
-        id: quizId,
-      },
-    });
+          if (!quiz) {
+            throw new NotFoundException(`Quiz with id ${quizId} not found`);
+          }
 
-    if (!quiz) {
-      throw new NotFoundException(`Quiz with id ${quizId} not found`);
-    }
-
-    return this.prisma.quizQuestion.create({
-      data: {
-        question_text: dto.question,
-        quiz_id: quizId,
-        options: {
-          create: dto.options.map((option) => ({
-            option_text: option.optionText,
-            is_correct: option.isCorrect,
-          })),
-        },
-      },
-      include: {
-        options: true,
-      },
-    });
+          return this.prisma.quizQuestion.create({
+            data: {
+              question_text: dto.question,
+              hint: dto.hint,
+              quiz_id: quizId,
+              options: {
+                create: dto.options.map((option) => ({
+                  option_text: option.optionText,
+                  is_correct: option.isCorrect,
+                })),
+              },
+            },
+            include: {
+              options: true,
+            },
+          });
+        } catch (error) {
+          console.error('Error in creating quiz question:', error);
+          throw new InternalServerErrorException('Failed to create quiz question');
+        }
   }
 
-  // async updateQuestion(questionId: number, dto: UpdateQuestionDto) {
-  //   const question = await this.prisma.quizQuestion.findUnique({
-  //     where: {
-  //       id: questionId,
-  //     },
-  //     include: { options: true },
-  //   });
-
-  //   if (!question) {
-  //     throw new NotFoundException(`Question with ID ${questionId} not found`);
-  //   }
-
-  //   return this.prisma.quizQuestion.update({
-  //     where: {
-  //       id: questionId,
-  //     },
-  //     data: {
-  //       question_text: dto.question,
-  //       options: {
-  //         // Delete options that aren't in the new list
-  //         deleteMany: {
-  //           id: {
-  //             notIn: dto.options
-  //               .filter((opt) => opt.id !== undefined)
-  //               .map((opt) => opt.id as number),
-  //           },
-  //         },
-
-  //         // Update existing options
-  //         updateMany: dto.options
-  //           .filter((opt) => opt.id !== undefined)
-  //           .map((option) => ({
-  //             where: { id: option.id },
-  //             data: {
-  //               option_text: option.optionText,
-  //               is_correct: option.isCorrect,
-  //             },
-  //           })),
-  //         // Create new options
-  //         create: dto.options
-  //           .filter((opt) => opt.id === undefined)
-  //           .map((option) => ({
-  //             option_text: option.optionText,
-  //             is_correct: option.isCorrect,
-  //           })),
-  //       },
-  //     },
-
-  //     include: {
-  //       options: true,
-  //     },
-  //   });
-  // }
   async updateQuestion(questionId: number, dto: UpdateQuestionDto) {
     const question = await this.prisma.quizQuestion.findUnique({
       where: { id: questionId },

@@ -1,4 +1,4 @@
--- Create ENUM types
+-- Create Enums
 CREATE TYPE "Role" AS ENUM ('ADMIN', 'INSTRUCTOR', 'STUDENT');
 CREATE TYPE "CourseCategory" AS ENUM ('WEB', 'MOBILE', 'DATA_SCIENCE', 'DESIGN', 'BUSINESS');
 CREATE TYPE "DifficultyLevel" AS ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED');
@@ -7,13 +7,13 @@ CREATE TYPE "EnrollmentStatus" AS ENUM ('COMPLETED', 'PAUSED', 'IN_PROGRESS', 'N
 -- CreateTable
 CREATE TABLE "users" (
     "id" SERIAL NOT NULL,
-    "first_name" VARCHAR(191) NOT NULL,
-    "last_name" VARCHAR(191) NOT NULL,
-    "email" VARCHAR(191) NOT NULL,
-    "password" VARCHAR(191) NOT NULL,
+    "first_name" VARCHAR(255) NOT NULL,
+    "last_name" VARCHAR(255) NOT NULL,
+    "email" VARCHAR(255) NOT NULL,
+    "password" VARCHAR(255) NOT NULL,
     "role" "Role" NOT NULL,
-    "title" VARCHAR(191),
-    "profilePic" VARCHAR(191),
+    "title" VARCHAR(255),
+    "profilePic" VARCHAR(255),
     "bio" TEXT,
     "rating" DOUBLE PRECISION DEFAULT 0,
     "students" INTEGER DEFAULT 0,
@@ -23,14 +23,13 @@ CREATE TABLE "users" (
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateTable
 CREATE TABLE "courses" (
     "id" SERIAL NOT NULL,
-    "title" VARCHAR(191) NOT NULL,
-    "short_description" VARCHAR(255) NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
+    "short_description" VARCHAR(1000) NOT NULL,
     "description" TEXT NOT NULL,
     "category" "CourseCategory" NOT NULL,
     "difficulty" "DifficultyLevel" NOT NULL,
@@ -39,7 +38,7 @@ CREATE TABLE "courses" (
     "total_hours" INTEGER NOT NULL,
     "pricing" DOUBLE PRECISION,
     "original_price" DOUBLE PRECISION,
-    "imageUrl" VARCHAR(191),
+    "imageUrl" VARCHAR(255),
     "videoUrl" VARCHAR(1024),
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "instructor_id" INTEGER NOT NULL,
@@ -49,7 +48,6 @@ CREATE TABLE "courses" (
     CONSTRAINT "courses_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "courses_instructor_id_idx" ON "courses"("instructor_id");
 CREATE INDEX "courses_category_idx" ON "courses"("category");
 CREATE INDEX "courses_difficulty_idx" ON "courses"("difficulty");
@@ -57,7 +55,7 @@ CREATE INDEX "courses_difficulty_idx" ON "courses"("difficulty");
 -- CreateTable
 CREATE TABLE "modules" (
     "id" SERIAL NOT NULL,
-    "title" VARCHAR(191) NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
     "description" TEXT,
     "order" INTEGER NOT NULL,
     "duration" INTEGER NOT NULL,
@@ -68,13 +66,12 @@ CREATE TABLE "modules" (
     CONSTRAINT "modules_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "modules_course_id_order_key" ON "modules"("course_id", "order");
 
 -- CreateTable
 CREATE TABLE "lessons" (
     "id" SERIAL NOT NULL,
-    "title" VARCHAR(191) NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
     "description" TEXT,
     "content" TEXT NOT NULL,
     "duration" INTEGER NOT NULL,
@@ -88,14 +85,13 @@ CREATE TABLE "lessons" (
     CONSTRAINT "lessons_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "lessons_module_id_order_key" ON "lessons"("module_id", "order");
 
 -- CreateTable
 CREATE TABLE "quizzes" (
     "id" SERIAL NOT NULL,
-    "title" VARCHAR(191) NOT NULL,
-    "description" VARCHAR(191),
+    "title" VARCHAR(255) NOT NULL,
+    "description" TEXT NOT NULL,
     "lesson_id" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -103,16 +99,15 @@ CREATE TABLE "quizzes" (
     CONSTRAINT "quizzes_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "quizzes_lesson_id_key" ON "quizzes"("lesson_id");
 CREATE INDEX "quizzes_lesson_id_idx" ON "quizzes"("lesson_id");
 
 -- CreateTable
 CREATE TABLE "quiz_questions" (
     "id" SERIAL NOT NULL,
-    "question_text" VARCHAR(191) NOT NULL,
-    "hint" VARCHAR(191),
-    "explanation" VARCHAR(191),
+    "question_text" VARCHAR(255) NOT NULL,
+    "hint" VARCHAR(255),
+    "explanation" VARCHAR(255),
     "quiz_id" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -120,13 +115,12 @@ CREATE TABLE "quiz_questions" (
     CONSTRAINT "quiz_questions_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "quiz_questions_quiz_id_idx" ON "quiz_questions"("quiz_id");
 
 -- CreateTable
 CREATE TABLE "quiz_question_options" (
     "id" SERIAL NOT NULL,
-    "option_text" VARCHAR(191) NOT NULL,
+    "option_text" VARCHAR(255) NOT NULL,
     "is_correct" BOOLEAN NOT NULL,
     "quiz_question_id" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -135,7 +129,6 @@ CREATE TABLE "quiz_question_options" (
     CONSTRAINT "quiz_question_options_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "quiz_question_options_quiz_question_id_idx" ON "quiz_question_options"("quiz_question_id");
 
 -- CreateTable
@@ -151,7 +144,6 @@ CREATE TABLE "quiz_attempts" (
     CONSTRAINT "quiz_attempts_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "quiz_attempts_user_id_quiz_id_idx" ON "quiz_attempts"("user_id", "quiz_id");
 CREATE INDEX "quiz_attempts_completed_at_idx" ON "quiz_attempts"("completed_at");
 
@@ -168,7 +160,6 @@ CREATE TABLE "quiz_answers" (
     CONSTRAINT "quiz_answers_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "quiz_answers_attempt_id_question_id_idx" ON "quiz_answers"("attempt_id", "question_id");
 CREATE INDEX "quiz_answers_selected_option_id_idx" ON "quiz_answers"("selected_option_id");
 
@@ -189,7 +180,6 @@ CREATE TABLE "lesson_progress" (
     CONSTRAINT "lesson_progress_pkey" PRIMARY KEY ("user_id", "lesson_id")
 );
 
--- CreateIndex
 CREATE INDEX "lesson_progress_module_id_idx" ON "lesson_progress"("module_id");
 CREATE INDEX "lesson_progress_course_id_idx" ON "lesson_progress"("course_id");
 
@@ -205,7 +195,6 @@ CREATE TABLE "notes" (
     CONSTRAINT "notes_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "notes_user_id_idx" ON "notes"("user_id");
 CREATE INDEX "notes_lesson_id_idx" ON "notes"("lesson_id");
 
@@ -220,7 +209,6 @@ CREATE TABLE "course_learning_outcomes" (
     CONSTRAINT "course_learning_outcomes_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "course_learning_outcomes_course_id_idx" ON "course_learning_outcomes"("course_id");
 
 -- CreateTable
@@ -234,7 +222,6 @@ CREATE TABLE "course_requirements" (
     CONSTRAINT "course_requirements_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "course_requirements_course_id_idx" ON "course_requirements"("course_id");
 
 -- CreateTable
@@ -251,7 +238,6 @@ CREATE TABLE "enrollments" (
     CONSTRAINT "enrollments_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "enrollments_course_id_idx" ON "enrollments"("course_id");
 CREATE INDEX "enrollments_user_id_idx" ON "enrollments"("user_id");
 CREATE UNIQUE INDEX "enrollments_user_id_course_id_key" ON "enrollments"("user_id", "course_id");
@@ -269,7 +255,6 @@ CREATE TABLE "reviews" (
     CONSTRAINT "reviews_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "reviews_user_id_idx" ON "reviews"("user_id");
 CREATE INDEX "reviews_course_id_idx" ON "reviews"("course_id");
 
@@ -285,7 +270,6 @@ CREATE TABLE "certificates" (
     CONSTRAINT "certificates_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "certificates_course_id_idx" ON "certificates"("course_id");
 CREATE INDEX "certificates_user_id_idx" ON "certificates"("user_id");
 
@@ -294,17 +278,16 @@ CREATE TABLE "payments" (
     "id" SERIAL NOT NULL,
     "user_id" INTEGER NOT NULL,
     "course_id" INTEGER NOT NULL,
-    "transaction_id" VARCHAR(191) NOT NULL,
+    "transaction_id" VARCHAR(255) NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
-    "status" VARCHAR(191) NOT NULL,
-    "payment_method" VARCHAR(191),
+    "status" VARCHAR(255) NOT NULL,
+    "payment_method" VARCHAR(255),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE UNIQUE INDEX "payments_transaction_id_key" ON "payments"("transaction_id");
 CREATE INDEX "payments_course_id_idx" ON "payments"("course_id");
 CREATE INDEX "payments_user_id_idx" ON "payments"("user_id");
@@ -313,14 +296,13 @@ CREATE INDEX "payments_user_id_idx" ON "payments"("user_id");
 CREATE TABLE "payment_histories" (
     "id" SERIAL NOT NULL,
     "payment_id" INTEGER NOT NULL,
-    "status" VARCHAR(191) NOT NULL,
+    "status" VARCHAR(255) NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "payment_histories_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
 CREATE INDEX "payment_histories_payment_id_idx" ON "payment_histories"("payment_id");
 
 -- AddForeignKey

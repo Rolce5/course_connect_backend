@@ -20,7 +20,7 @@ export class CourseService {
 
   // Fetch courses along with the user (instructor) information
   async getAllCourses(instructorId: number, role: string) {
-    if (role === 'ADMIN' || role === 'STUDENT') {
+    if (role === 'ADMIN') {
       // Return all courses with instructor information
       return this.prisma.course.findMany({
         include: {
@@ -28,7 +28,21 @@ export class CourseService {
           enrollments: true,
         },
       });
-    } else if (role === 'INSTRUCTOR') {
+    } else if ( role === 'STUDENT')
+    {
+      // Return all courses with instructor information
+      return this.prisma.course.findMany({
+        where: {
+          is_active: true
+        },
+        include: {
+          instructor: true,
+          enrollments: true,
+        },
+      });
+    }
+    else if (role === 'INSTRUCTOR')
+    {
       // Return only courses associated with the instructor
       return this.prisma.course.findMany({
         where: {

@@ -2,6 +2,7 @@ import {
   IsArray,
   IsBoolean,
   IsNotEmpty,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -17,7 +18,12 @@ class CreateOptionDto {
 
 export class CreateQuestionDto {
   @IsNotEmpty()
+  @IsString()
   question: string;
+
+  @IsNotEmpty()
+  @IsString()
+  hint: string;
 
   @IsArray()
   @ValidateNested({ each: true })

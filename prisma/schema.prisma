@@ -36,7 +36,7 @@ model User {
 model Course {
   id                Int                     @id @default(autoincrement())
   title             String
-  short_description String                  @db.VarChar(255)
+  short_description String                  @db.VarChar(1000) 
   description       String                  @db.Text
   category          CourseCategory
   difficulty        DifficultyLevel
@@ -118,7 +118,7 @@ model Lesson {
 model Quiz {
   id           Int            @id @default(autoincrement())
   title        String
-  description  String?
+  description  String         @db.Text
   lesson_id    Int            @unique
   created_at   DateTime       @default(now())
   updated_at   DateTime       @updatedAt
