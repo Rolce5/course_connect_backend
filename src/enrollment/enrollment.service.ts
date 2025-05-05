@@ -6,12 +6,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { EnrollmentStatus } from '@prisma/client';
+import { CertificateService } from 'src/certificate/certificate.service';
 import { PaymentRequiredException } from 'src/exceptions/payment-required.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class EnrollmentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private certificateService: CertificateService,
+  ) {}
 
   async enroll(userId: number, courseId: number) {
     // Check if the user is already enrolled in the course
@@ -494,6 +498,52 @@ export class EnrollmentService {
         completed: true,
         first_completed_at: true,
       },
+    });
+  }
+
+  async completeCourse(userId: number, courseId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Verify all lessons are completed
+      const [totalLessons, completedLessons] = await Promise.all([
+        tx.lesson.count({ where: { module: { course_id: courseId } } }),
+        tx.lessonProgress.count({
+          where: {
+            user_id: userId,
+            course_id: courseId,
+            completed: true,
+          },
+        }),
+      ]);
+
+      if (completedLessons < totalLessons) {
+        throw new Error(`Complete all ${totalLessons} lessons first`);
+      }
+
+      // 2. Update enrollment status
+      const enrollment = await tx.enrollment.update({
+        where: {
+          user_id_course_id: {
+            user_id: userId,
+            course_id: courseId,
+          },
+        },
+        data: {
+          status: 'COMPLETED',
+          progress: 100,
+          completed_at: new Date(),
+        },
+      });
+
+      // Generate certificate
+      const certificate = await this.certificateService.generateCertificate(
+        userId,
+        courseId,
+      );
+
+      return {
+        enrollment,
+        certificate,
+      };
     });
   }
 }

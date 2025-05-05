@@ -1,8 +1,33 @@
--- Create Enums
-CREATE TYPE "Role" AS ENUM ('ADMIN', 'INSTRUCTOR', 'STUDENT');
-CREATE TYPE "CourseCategory" AS ENUM ('WEB', 'MOBILE', 'DATA_SCIENCE', 'DESIGN', 'BUSINESS');
-CREATE TYPE "DifficultyLevel" AS ENUM ('BEGINNER', 'INTERMEDIATE', 'ADVANCED');
-CREATE TYPE "EnrollmentStatus" AS ENUM ('COMPLETED', 'PAUSED', 'IN_PROGRESS', 'NOT_STARTED');
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM (
+    'ADMIN',
+    'INSTRUCTOR',
+    'STUDENT'
+);
+
+-- CreateEnum
+CREATE TYPE "CourseCategory" AS ENUM (
+    'WEB',
+    'MOBILE',
+    'DATA_SCIENCE',
+    'DESIGN',
+    'BUSINESS'
+);
+
+-- CreateEnum
+CREATE TYPE "DifficultyLevel" AS ENUM (
+    'BEGINNER',
+    'INTERMEDIATE',
+    'ADVANCED'
+);
+
+-- CreateEnum
+CREATE TYPE "EnrollmentStatus" AS ENUM (
+    'COMPLETED',
+    'PAUSED',
+    'IN_PROGRESS',
+    'NOT_STARTED'
+);
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -22,8 +47,6 @@ CREATE TABLE "users" (
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
-
-CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateTable
 CREATE TABLE "courses" (
@@ -48,10 +71,6 @@ CREATE TABLE "courses" (
     CONSTRAINT "courses_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "courses_instructor_id_idx" ON "courses"("instructor_id");
-CREATE INDEX "courses_category_idx" ON "courses"("category");
-CREATE INDEX "courses_difficulty_idx" ON "courses"("difficulty");
-
 -- CreateTable
 CREATE TABLE "modules" (
     "id" SERIAL NOT NULL,
@@ -65,8 +84,6 @@ CREATE TABLE "modules" (
 
     CONSTRAINT "modules_pkey" PRIMARY KEY ("id")
 );
-
-CREATE UNIQUE INDEX "modules_course_id_order_key" ON "modules"("course_id", "order");
 
 -- CreateTable
 CREATE TABLE "lessons" (
@@ -85,8 +102,6 @@ CREATE TABLE "lessons" (
     CONSTRAINT "lessons_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "lessons_module_id_order_key" ON "lessons"("module_id", "order");
-
 -- CreateTable
 CREATE TABLE "quizzes" (
     "id" SERIAL NOT NULL,
@@ -98,9 +113,6 @@ CREATE TABLE "quizzes" (
 
     CONSTRAINT "quizzes_pkey" PRIMARY KEY ("id")
 );
-
-CREATE UNIQUE INDEX "quizzes_lesson_id_key" ON "quizzes"("lesson_id");
-CREATE INDEX "quizzes_lesson_id_idx" ON "quizzes"("lesson_id");
 
 -- CreateTable
 CREATE TABLE "quiz_questions" (
@@ -115,8 +127,6 @@ CREATE TABLE "quiz_questions" (
     CONSTRAINT "quiz_questions_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "quiz_questions_quiz_id_idx" ON "quiz_questions"("quiz_id");
-
 -- CreateTable
 CREATE TABLE "quiz_question_options" (
     "id" SERIAL NOT NULL,
@@ -128,8 +138,6 @@ CREATE TABLE "quiz_question_options" (
 
     CONSTRAINT "quiz_question_options_pkey" PRIMARY KEY ("id")
 );
-
-CREATE INDEX "quiz_question_options_quiz_question_id_idx" ON "quiz_question_options"("quiz_question_id");
 
 -- CreateTable
 CREATE TABLE "quiz_attempts" (
@@ -144,9 +152,6 @@ CREATE TABLE "quiz_attempts" (
     CONSTRAINT "quiz_attempts_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "quiz_attempts_user_id_quiz_id_idx" ON "quiz_attempts"("user_id", "quiz_id");
-CREATE INDEX "quiz_attempts_completed_at_idx" ON "quiz_attempts"("completed_at");
-
 -- CreateTable
 CREATE TABLE "quiz_answers" (
     "id" SERIAL NOT NULL,
@@ -159,9 +164,6 @@ CREATE TABLE "quiz_answers" (
 
     CONSTRAINT "quiz_answers_pkey" PRIMARY KEY ("id")
 );
-
-CREATE INDEX "quiz_answers_attempt_id_question_id_idx" ON "quiz_answers"("attempt_id", "question_id");
-CREATE INDEX "quiz_answers_selected_option_id_idx" ON "quiz_answers"("selected_option_id");
 
 -- CreateTable
 CREATE TABLE "lesson_progress" (
@@ -177,11 +179,8 @@ CREATE TABLE "lesson_progress" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "lesson_progress_pkey" PRIMARY KEY ("user_id", "lesson_id")
+    CONSTRAINT "lesson_progress_pkey" PRIMARY KEY ("user_id","lesson_id")
 );
-
-CREATE INDEX "lesson_progress_module_id_idx" ON "lesson_progress"("module_id");
-CREATE INDEX "lesson_progress_course_id_idx" ON "lesson_progress"("course_id");
 
 -- CreateTable
 CREATE TABLE "notes" (
@@ -195,9 +194,6 @@ CREATE TABLE "notes" (
     CONSTRAINT "notes_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "notes_user_id_idx" ON "notes"("user_id");
-CREATE INDEX "notes_lesson_id_idx" ON "notes"("lesson_id");
-
 -- CreateTable
 CREATE TABLE "course_learning_outcomes" (
     "id" SERIAL NOT NULL,
@@ -208,8 +204,6 @@ CREATE TABLE "course_learning_outcomes" (
 
     CONSTRAINT "course_learning_outcomes_pkey" PRIMARY KEY ("id")
 );
-
-CREATE INDEX "course_learning_outcomes_course_id_idx" ON "course_learning_outcomes"("course_id");
 
 -- CreateTable
 CREATE TABLE "course_requirements" (
@@ -222,8 +216,6 @@ CREATE TABLE "course_requirements" (
     CONSTRAINT "course_requirements_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "course_requirements_course_id_idx" ON "course_requirements"("course_id");
-
 -- CreateTable
 CREATE TABLE "enrollments" (
     "id" SERIAL NOT NULL,
@@ -232,15 +224,12 @@ CREATE TABLE "enrollments" (
     "progress" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "status" "EnrollmentStatus" NOT NULL DEFAULT 'NOT_STARTED',
     "last_lesson_id" INTEGER,
+    "completed_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "enrollments_pkey" PRIMARY KEY ("id")
 );
-
-CREATE INDEX "enrollments_course_id_idx" ON "enrollments"("course_id");
-CREATE INDEX "enrollments_user_id_idx" ON "enrollments"("user_id");
-CREATE UNIQUE INDEX "enrollments_user_id_course_id_key" ON "enrollments"("user_id", "course_id");
 
 -- CreateTable
 CREATE TABLE "reviews" (
@@ -255,9 +244,6 @@ CREATE TABLE "reviews" (
     CONSTRAINT "reviews_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "reviews_user_id_idx" ON "reviews"("user_id");
-CREATE INDEX "reviews_course_id_idx" ON "reviews"("course_id");
-
 -- CreateTable
 CREATE TABLE "certificates" (
     "id" SERIAL NOT NULL,
@@ -266,12 +252,12 @@ CREATE TABLE "certificates" (
     "awarded_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "certificate_number" VARCHAR(255) NOT NULL,
+    "download_url" VARCHAR(255),
+    "verification_code" VARCHAR(255) NOT NULL,
 
     CONSTRAINT "certificates_pkey" PRIMARY KEY ("id")
 );
-
-CREATE INDEX "certificates_course_id_idx" ON "certificates"("course_id");
-CREATE INDEX "certificates_user_id_idx" ON "certificates"("user_id");
 
 -- CreateTable
 CREATE TABLE "payments" (
@@ -288,10 +274,6 @@ CREATE TABLE "payments" (
     CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "payments_transaction_id_key" ON "payments"("transaction_id");
-CREATE INDEX "payments_course_id_idx" ON "payments"("course_id");
-CREATE INDEX "payments_user_id_idx" ON "payments"("user_id");
-
 -- CreateTable
 CREATE TABLE "payment_histories" (
     "id" SERIAL NOT NULL,
@@ -303,6 +285,103 @@ CREATE TABLE "payment_histories" (
     CONSTRAINT "payment_histories_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE INDEX "courses_instructor_id_idx" ON "courses"("instructor_id");
+
+-- CreateIndex
+CREATE INDEX "courses_category_idx" ON "courses"("category");
+
+-- CreateIndex
+CREATE INDEX "courses_difficulty_idx" ON "courses"("difficulty");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "modules_course_id_order_key" ON "modules"("course_id", "order");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "lessons_module_id_order_key" ON "lessons"("module_id", "order");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "quizzes_lesson_id_key" ON "quizzes"("lesson_id");
+
+-- CreateIndex
+CREATE INDEX "quizzes_lesson_id_idx" ON "quizzes"("lesson_id");
+
+-- CreateIndex
+CREATE INDEX "quiz_questions_quiz_id_idx" ON "quiz_questions"("quiz_id");
+
+-- CreateIndex
+CREATE INDEX "quiz_question_options_quiz_question_id_idx" ON "quiz_question_options"("quiz_question_id");
+
+-- CreateIndex
+CREATE INDEX "quiz_attempts_user_id_quiz_id_idx" ON "quiz_attempts"("user_id", "quiz_id");
+
+-- CreateIndex
+CREATE INDEX "quiz_attempts_completed_at_idx" ON "quiz_attempts"("completed_at");
+
+-- CreateIndex
+CREATE INDEX "quiz_answers_attempt_id_question_id_idx" ON "quiz_answers"("attempt_id", "question_id");
+
+-- CreateIndex
+CREATE INDEX "quiz_answers_selected_option_id_idx" ON "quiz_answers"("selected_option_id");
+
+-- CreateIndex
+CREATE INDEX "lesson_progress_module_id_idx" ON "lesson_progress"("module_id");
+
+-- CreateIndex
+CREATE INDEX "lesson_progress_course_id_idx" ON "lesson_progress"("course_id");
+
+-- CreateIndex
+CREATE INDEX "notes_user_id_idx" ON "notes"("user_id");
+
+-- CreateIndex
+CREATE INDEX "notes_lesson_id_idx" ON "notes"("lesson_id");
+
+-- CreateIndex
+CREATE INDEX "course_learning_outcomes_course_id_idx" ON "course_learning_outcomes"("course_id");
+
+-- CreateIndex
+CREATE INDEX "course_requirements_course_id_idx" ON "course_requirements"("course_id");
+
+-- CreateIndex
+CREATE INDEX "enrollments_course_id_idx" ON "enrollments"("course_id");
+
+-- CreateIndex
+CREATE INDEX "enrollments_user_id_idx" ON "enrollments"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "enrollments_user_id_course_id_key" ON "enrollments"("user_id", "course_id");
+
+-- CreateIndex
+CREATE INDEX "reviews_user_id_idx" ON "reviews"("user_id");
+
+-- CreateIndex
+CREATE INDEX "reviews_course_id_idx" ON "reviews"("course_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "certificates_certificate_number_key" ON "certificates"("certificate_number");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "certificates_verification_code_key" ON "certificates"("verification_code");
+
+-- CreateIndex
+CREATE INDEX "certificates_course_id_idx" ON "certificates"("course_id");
+
+-- CreateIndex
+CREATE INDEX "certificates_user_id_idx" ON "certificates"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "payments_transaction_id_key" ON "payments"("transaction_id");
+
+-- CreateIndex
+CREATE INDEX "payments_course_id_idx" ON "payments"("course_id");
+
+-- CreateIndex
+CREATE INDEX "payments_user_id_idx" ON "payments"("user_id");
+
+-- CreateIndex
 CREATE INDEX "payment_histories_payment_id_idx" ON "payment_histories"("payment_id");
 
 -- AddForeignKey

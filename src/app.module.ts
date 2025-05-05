@@ -24,10 +24,14 @@ import { QuizQuestionModule } from './quiz-question/quiz-question.module';
 import { NoteController } from './note/note.controller';
 import { NoteModule } from './note/note.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { RecommendCourseController } from './recommend-course/recommend-course.controller';
+import { RecommendCourseModule } from './recommend-course/recommend-course.module';
+import { CertificateService } from './certificate/certificate.service';
+import { CertificateModule } from './certificate/certificate.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, UserModule, PrismaModule, CourseModule, LessonsModule, EnrollmentModule, CloudinaryModule, ModuleModule, PaymentModule, QuizModule, QuizQuestionModule, NoteModule, DashboardModule],
-  controllers: [AppController, CourseController, EnrollmentController, ModuleController, PaymentController, QuizQuestionController, NoteController],
-  providers: [AppService, CourseService, EnrollmentService, CloudinaryService, ],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, UserModule, PrismaModule, CourseModule, LessonsModule, EnrollmentModule, CloudinaryModule, ModuleModule, PaymentModule, QuizModule, QuizQuestionModule, NoteModule, DashboardModule, RecommendCourseModule, CertificateModule],
+  controllers: [AppController, CourseController, EnrollmentController, ModuleController, PaymentController, QuizQuestionController, NoteController, RecommendCourseController],
+  providers: [AppService, CourseService, EnrollmentService, CloudinaryService, CertificateService, ],
 })
 export class AppModule {}

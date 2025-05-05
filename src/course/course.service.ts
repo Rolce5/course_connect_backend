@@ -20,43 +20,27 @@ export class CourseService {
 
   // Fetch courses along with the user (instructor) information
   async getAllCourses(instructorId: number, role: string) {
-    if (role === 'ADMIN') {
-      // Return all courses with instructor information
-      return this.prisma.course.findMany({
-        include: {
-          instructor: true,
-          enrollments: true,
-        },
-      });
-    } else if ( role === 'STUDENT')
-    {
-      // Return all courses with instructor information
-      return this.prisma.course.findMany({
-        where: {
-          is_active: true
-        },
-        include: {
-          instructor: true,
-          enrollments: true,
-        },
-      });
-    }
-    else if (role === 'INSTRUCTOR')
-    {
-      // Return only courses associated with the instructor
-      return this.prisma.course.findMany({
-        where: {
-          instructor_id: instructorId,
-        },
-        include: {
-          instructor: true,
-          enrollments: true,
-        },
-      });
-    } else {
-      // Handle other roles or throw an error
+    const baseQuery = {
+      include: {
+        instructor: true,
+        enrollments: true,
+      },
+    };
+
+    const roleQueryMap = {
+      ADMIN: {},
+      STUDENT: { where: { is_active: true } },
+      INSTRUCTOR: { where: { instructor_id: instructorId } },
+    };
+
+    if (!(role in roleQueryMap)) {
       throw new ForbiddenException('Access to resource denied');
     }
+
+    return this.prisma.course.findMany({
+      ...baseQuery,
+      ...roleQueryMap[role],
+    });
   }
 
   async createCourse(
@@ -97,9 +81,10 @@ export class CourseService {
           category: dto.category,
           difficulty: dto.difficulty,
           pricing: dto.pricing === undefined ? null : dto.pricing,
-          original_price: dto.originalPrice === undefined ? null : dto.originalPrice,
-          duration: dto.duration
-          // videoUrl: dto.videoUrl 
+          original_price:
+            dto.originalPrice === undefined ? null : dto.originalPrice,
+          duration: dto.duration,
+          // videoUrl: dto.videoUrl
         },
       });
 
@@ -216,8 +201,8 @@ export class CourseService {
       enrollment = await this.prisma.enrollment.findUnique({
         where: {
           user_id_course_id: {
-            user_id: userId, 
-            course_id: courseId
+            user_id: userId,
+            course_id: courseId,
           },
         },
       });
@@ -377,8 +362,9 @@ export class CourseService {
         category: dto.category,
         difficulty: dto.difficulty,
         pricing: dto.pricing === undefined ? null : dto.pricing,
-        original_price: dto.originalPrice === undefined ? null : dto.originalPrice,
-        duration: dto.duration
+        original_price:
+          dto.originalPrice === undefined ? null : dto.originalPrice,
+        duration: dto.duration,
       },
     });
   }

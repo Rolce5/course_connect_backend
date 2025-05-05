@@ -278,6 +278,7 @@ model Enrollment {
   progress       Float           @default(0)
   status         EnrollmentStatus @default(NOT_STARTED)
   last_lesson_id Int?
+  completed_at   DateTime?       
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt
 
@@ -307,6 +308,21 @@ model Review {
   @@map("reviews")
 }
 
+//model Certificate {
+//  id         Int      @id @default(autoincrement())
+ // user_id    Int
+ // course_id  Int
+ // awarded_at DateTime @default(now())
+ // created_at DateTime @default(now())
+ // updated_at DateTime @updatedAt
+ // course     Course   @relation(fields: [course_id], references: [id])
+//  user       User     @relation(fields: [user_id], references: [id])
+
+ // @@index([course_id])
+ // @@index([user_id])
+ // @@map("certificates")
+//}
+
 model Certificate {
   id         Int      @id @default(autoincrement())
   user_id    Int
@@ -314,9 +330,13 @@ model Certificate {
   awarded_at DateTime @default(now())
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+  certificate_number String @unique // Add unique identifier
+  download_url String? // URL to download PDF
+  verification_code String @unique // For verification purposes
+
   course     Course   @relation(fields: [course_id], references: [id])
   user       User     @relation(fields: [user_id], references: [id])
-
+  
   @@index([course_id])
   @@index([user_id])
   @@map("certificates")

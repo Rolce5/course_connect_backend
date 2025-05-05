@@ -2,6 +2,7 @@ import {
   IsArray,
   IsBoolean,
   IsNotEmpty,
+  IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
@@ -21,7 +22,7 @@ export class CreateQuestionDto {
   @IsString()
   question: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   hint: string;
 

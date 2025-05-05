@@ -25,7 +25,7 @@ export class UpdateQuestionDto {
   @IsString()
   question: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   hint: string;
 

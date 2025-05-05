@@ -13,45 +13,84 @@ export class CloudinaryService {
     });
   }
 
-  async uploadImage(file: Express.Multer.File | undefined): Promise<CloudinaryResponse | undefined> {
+  async uploadImage(
+    file: Express.Multer.File | undefined,
+  ): Promise<CloudinaryResponse | undefined> {
     if (!file) {
       return undefined; // Return undefined if no file is provided
     }
-  
+
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         { resource_type: 'auto' },
         (error, result) => {
           if (error) return reject(error);
-          if (!result) return reject(new Error('Upload failed: No result returned from Cloudinary'));
+          if (!result)
+            return reject(
+              new Error('Upload failed: No result returned from Cloudinary'),
+            );
           resolve(result);
         },
       );
-  
+
       Readable.from(file.buffer).pipe(uploadStream);
     });
   }
-  
-  async uploadVideo(file: Express.Multer.File | undefined): Promise<CloudinaryResponse | undefined> {
+
+  async uploadVideo(
+    file: Express.Multer.File | undefined,
+  ): Promise<CloudinaryResponse | undefined> {
     if (!file) {
       return undefined; // Return undefined if no file is provided
     }
-  
+
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         { resource_type: 'video' },
         (error, result) => {
           if (error) return reject(error);
-          if (!result) return reject(new Error('Upload failed: No result returned from Cloudinary'));
+          if (!result)
+            return reject(
+              new Error('Upload failed: No result returned from Cloudinary'),
+            );
           resolve(result);
         },
       );
-  
+
       Readable.from(file.buffer).pipe(uploadStream);
     });
   }
 
-  async deleteFile(publicId: string, resourceType: 'image' | 'video'): Promise<void> {
-    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+  async uploadRawFile(
+    buffer: Buffer,
+    publicId: string,
+  ): Promise<CloudinaryResponse | undefined> {
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'raw',
+          public_id: publicId,
+          format: 'pdf',
+          type: 'authenticated',
+          tags: ['certificate'],
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          if (!result) return reject(new Error('Upload failed'));
+          resolve(result);
+        },
+      );
+
+      Readable.from(buffer).pipe(uploadStream);
+    });
+  }
+
+  async deleteFile(
+    publicId: string,
+    resourceType: 'image' | 'video' | 'raw',
+  ): Promise<void> {
+    await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    });
   }
 }
