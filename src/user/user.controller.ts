@@ -28,6 +28,15 @@ export class UserController {
     return this.userService.getStudents(page, limit);
   }
 
+  @Get('instructors')
+  @UseGuards(RoleGuard)
+  getInstructors(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ) {
+    return this.userService.getInstructors(page, limit);
+  }
+
  
   @Get('profile')
   getMe(@GetUser() user: User) {
